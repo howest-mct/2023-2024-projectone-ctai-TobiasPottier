@@ -23,7 +23,7 @@ label_annotator = sv.LabelAnnotator()
 tx_q = Queue()
 rx_q = Queue()
 
-targetDeviceName=None
+targetDeviceName="TPBias-pi-gatt-uart"
 targetDeviceMac="D8:3A:DD:D9:73:57"
 
 def init_ble_thread():
