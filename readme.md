@@ -1,9 +1,9 @@
-# Project Title
+# Secure Face-ID Home Lock
 
-**FIRST & LAST NAME:** A B
+**FIRST & LAST NAME:** Tobias Pottier
 
-**Sparring Partner:** C D
+**Sparring Partner:** Yahya Chaudhry
 
-**Project Summary in max 10 words:** E
+**Project Summary in max 10 words:** Enhance security and effenciency of home-owner's door lock
 
-**Project Title:** F
+**Project Title:** Secure Face-ID Home Lock

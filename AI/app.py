@@ -24,7 +24,7 @@ tx_q = Queue()
 rx_q = Queue()
 
 targetDeviceName=None
-targetDeviceMac="D8:3A:DD:B8:9E:86"
+targetDeviceMac="D8:3A:DD:D9:73:57"
 
 def init_ble_thread():
     # Creating a new thread for running a function 'run' with specified arguments.
