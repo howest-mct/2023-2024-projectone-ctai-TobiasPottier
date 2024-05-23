@@ -1,0 +1,5 @@
+train: C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetDetection/SubSetDataset/images/train
+val: C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetDetection/SubSetDataset/images/val
+
+nc: 1  # Number of classes
+names: ['face']  # List of class names
