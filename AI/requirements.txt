@@ -92,3 +92,4 @@ sklearn3==0.0.1
 keras==3.3.3
 tensorflow==2.16.1
 scikit-learn==1.5.0
+imgaug==0.4.0
