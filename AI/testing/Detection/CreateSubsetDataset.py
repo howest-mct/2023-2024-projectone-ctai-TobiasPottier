@@ -26,7 +26,7 @@ input_image_dir = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetDetection/D
 input_label_dir = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetDetection/Dataset/labels/train'
 output_image_dir = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetDetection/SubSetDataset/images/train'
 output_label_dir = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetDetection/SubSetDataset/labels/train'
-subset_size = 1000  # Set the desired number of images
+subset_size = 1000  # desired number of images
 
 # Create subset
 create_subset(input_image_dir, input_label_dir, output_image_dir, output_label_dir, subset_size)
@@ -36,6 +36,6 @@ input_image_dir = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetDetection/D
 input_label_dir = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetDetection/Dataset/labels/val'
 output_image_dir = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetDetection/SubSetDataset/images/val'
 output_label_dir = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetDetection/SubSetDataset/labels/val'
-subset_size = 500  # Set the desired number of validation images
+subset_size = 500  # desired number of validation images
 
 create_subset(input_image_dir, input_label_dir, output_image_dir, output_label_dir, subset_size)

@@ -87,3 +87,4 @@ ultralytics==8.1.34
 urllib3==2.2.1
 uvicorn==0.29.0
 websockets==11.0.3
+keras-facenet==0.3.2

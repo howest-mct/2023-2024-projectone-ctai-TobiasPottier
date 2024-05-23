@@ -21,7 +21,7 @@ while True:
         print("Error: Can't receive frame (stream end?). Exiting ...")
         break
 
-    # Make predictions
+    # Make predictions with YOLO model
     results = model(frame)
 
     # Draw bounding boxes on the frame
