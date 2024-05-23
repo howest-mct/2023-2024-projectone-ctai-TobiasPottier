@@ -3,6 +3,7 @@ import numpy as np
 from ultralytics import YOLO
 from keras_facenet import FaceNet
 import pickle
+import os
 
 # Load the YOLO model for face detection
 yolo_model = YOLO('./best.pt')
@@ -54,20 +55,28 @@ while True:
             # Generate embeddings for the face
             embeddings = embedder.embeddings(face)
 
-            # Classify the face based on embeddings
-            predictions = classifier.predict(embeddings)
-            predicted_label = label_encoder.inverse_transform(predictions)[0]
+            probabilities = classifier.predict_proba(embeddings)
+            max_index = np.argmax(probabilities)
+            confidence = probabilities[0][max_index]
+            predicted_label = label_encoder.inverse_transform([max_index])[0]
 
-            # Convert the predicted label to a string
-            predicted_label_str = str(predicted_label)
+            # Only display the label if confidence is above a certain threshold
+            confidence_threshold = 0.01
+            if confidence > confidence_threshold:
+                # Convert the predicted label to a string
+                predicted_label_str = f"{predicted_label} ({confidence:.2f})"
 
-            # Draw bounding box and label on the frame
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-            cv2.putText(frame, predicted_label_str, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+                # Draw bounding box and label on the frame
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                cv2.putText(frame, f'{predicted_label_str}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+               
+                if predicted_label == 'Tobias':
+                    os.system('cls')
+                    print('UNLOCK')
 
     # Display the resulting frame
     cv2.imshow('Webcam Face Detection and Recognition', frame)
-
+    
     # Break the loop if the user presses 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
