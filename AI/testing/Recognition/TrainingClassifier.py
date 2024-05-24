@@ -89,9 +89,12 @@ best_accuracy = grid_search.best_score_
 best_parameters = grid_search.best_params_  
 
 print('Best accuracy : ', grid_search.best_score_)
-print('Best parameters :', grid_search.best_params_  )
+print('Best parameters :', grid_search.best_params_)
 
 SVMmodel = SVC(C=grid_search.best_params_['C'], kernel=grid_search.best_params_['kernel'], probability=True)
+if 'gamma' in grid_search.best_params_:
+    SVMmodel = SVC(C=grid_search.best_params_['C'], kernel=grid_search.best_params_['kernel'], gamma=grid_search.best_params_['gamma'], probability=True)
+
 SVMmodel.fit(X_train, y_train)
 
 y_pred = SVMmodel.predict(X_val)

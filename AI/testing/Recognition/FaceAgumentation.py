@@ -34,7 +34,7 @@ black_box_augmenter = iaa.CoarseDropout(0.02, size_percent=0.5).to_deterministic
 augmenters = [brightness_augmenter, rotation_augmenter, noise_augmenter, flip_augmenter, black_box_augmenter]
 
 # Directory containing the images
-image_dir = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset/Alessia'  # Change to your folder path
+image_dir = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset/Tobias'  # Change to your folder path
 
 # Get all image paths
 image_paths = glob(os.path.join(image_dir, "*.jpg")) + glob(os.path.join(image_dir, "*.png")) + glob(os.path.join(image_dir, "*.jpeg"))

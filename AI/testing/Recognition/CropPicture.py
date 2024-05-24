@@ -45,8 +45,8 @@ def detect_and_crop_faces(input_folder, output_folder):
                     index+=1
 
 # Define input and output folders
-input_folder = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset/Alessia/Unfiltered'
-output_folder = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset/Alessia'
+input_folder = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset/Tobias/Unfiltered'
+output_folder = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset/Tobias'
 
 # Run the detection and cropping
 detect_and_crop_faces(input_folder, output_folder)
