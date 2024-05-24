@@ -53,6 +53,7 @@ if not cap.isOpened():
     print("Error: Could not open webcam.")
     exit()
 
+# clear the queue manually
 def clear_queue(q):
     while not q.empty():
         try:
@@ -60,8 +61,9 @@ def clear_queue(q):
         except queue.Empty:
             break
 
+#last user detected state
 last_state = None
-user_name = 'Tobias'
+user_name = 'Tobias' # This name must be one of the labels in the dataset
 while True:
     # Capture frame-by-frame
     ret, frame = cap.read()
@@ -95,13 +97,13 @@ while True:
             # Generate embeddings for the face
             embeddings = embedder.embeddings(face)
 
-            probabilities = classifier.predict_proba(embeddings)
-            max_index = np.argmax(probabilities)
+            probabilities = classifier.predict_proba(embeddings)  # this gives you each probability per class
+            max_index = np.argmax(probabilities)  # max index = label of the person who has the highest probability
             confidence = probabilities[0][max_index]
             predicted_label = label_encoder.inverse_transform([max_index])[0]
 
             # Only display the label if confidence is above a certain threshold
-            confidence_threshold = 0.5
+            confidence_threshold = 0.90
             if confidence > confidence_threshold:
                 # Convert the predicted label to a string
                 predicted_label_str = f"{predicted_label} ({confidence:.2f})"
@@ -123,7 +125,7 @@ while True:
 
             box_states.append(current_state)
         current_state = 'UD' if 'UD' in box_states else 'NUD'
-        
+
     # Send the current state if it has changed from the last state
     if current_state != last_state:
         clear_queue(tx_q)
