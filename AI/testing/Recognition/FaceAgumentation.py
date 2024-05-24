@@ -30,7 +30,7 @@ rotation_augmenter = iaa.Affine(rotate=(-25, 25)).to_deterministic()  # Rotate i
 augmenters = [brightness_augmenter, rotation_augmenter]
 
 # Directory containing the images
-image_dir = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset/104018'  # Change to your folder path
+image_dir = 'C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset/Yahya'  # Change to your folder path
 
 # Get all image paths
 image_paths = glob(os.path.join(image_dir, "*.jpg")) + glob(os.path.join(image_dir, "*.png")) + glob(os.path.join(image_dir, "*.jpeg"))
