@@ -1,7 +1,7 @@
 import threading
 import queue
 import LCD
-
+# change here
 lcd = LCD.LCD()
 lcd.clear()
 
