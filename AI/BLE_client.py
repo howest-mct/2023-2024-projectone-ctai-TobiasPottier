@@ -38,12 +38,19 @@ async def uart_terminal(rx_q=None, tx_q=None, targetDeviceName=None, targetDevic
         if targetDeviceName != None and device.name == targetDeviceName and UART_SERVICE_UUID.lower() in adv.service_uuids:
             return True
         return False
+    
+    device = None
+    try:
+        while device is None:
+            print('Searching Device...')
+            device = await BleakScanner.find_device_by_filter(match_nus_uuid)
+            if device is None:
+                print("No matching device found, Trying again...")
+    except:
+        print('>Manual Exit<')
+        sys.exit()    
+        
 
-    device = await BleakScanner.find_device_by_filter(match_nus_uuid)
-
-    if device is None:
-        print("No matching device found, you may need to edit targetDeviceMac or targetDeviceName or match_nus_uuid().")
-        sys.exit(1)
 
     print("Found device, connecting...")
 
@@ -60,10 +67,8 @@ async def uart_terminal(rx_q=None, tx_q=None, targetDeviceName=None, targetDevic
             nus = client.services.get_service(UART_SERVICE_UUID)
             rx_char = nus.get_characteristic(UART_RX_CHAR_UUID)
 
-            # Define your personal data string
             personal_data = "Beep"
 
-            # Put the personal data on the tx queue
             if tx_q is not None:
                 tx_q.put(personal_data)
 
