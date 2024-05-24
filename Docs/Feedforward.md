@@ -32,7 +32,7 @@
 
 # Feedforward Conversations
 
-## Conversation 1 (Date: xx/xx/2024)
+## Conversation 1 (Date: 24/05/2024)
 
 Lecturer: Frederik
 
