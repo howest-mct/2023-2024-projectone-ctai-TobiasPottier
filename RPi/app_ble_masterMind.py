@@ -29,7 +29,7 @@ def main():
     tx_q = queue.Queue()
     device_name = "TPBias-pi-gatt-uart" # TODO: replace with your own (unique) device name
     threading.Thread(target=ble_gatt_uart_loop, args=(rx_q, tx_q, device_name), daemon=True).start()
-    lcd.send_string(MAC_ADDRESS, lcd.LCD_LINE_2)
+    lcd.send_string("BLE Server Ready", lcd.LCD_LINE_2)
     try:
         while True:
             try:
@@ -38,8 +38,13 @@ def main():
                     message = "{}".format(incoming)
                     print(message)
                     lcd.send_string(message, lcd.LCD_LINE_1)
-                if message == 'Beep':
-                    buzzer_pwm.ChangeFrequency(200)
+                if message == 'Start':
+                    buzzer_pwm.ChangeFrequency(4)
+                elif message == 'UD':
+                    buzzer_pwm.ChangeFrequency(50)
+                elif message == 'NUD':
+                    buzzer_pwm.ChangeFrequency(4)
+
             except Exception as e:
                 pass # nothing in Q 
 
