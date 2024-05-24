@@ -30,14 +30,16 @@ def main():
     tx_q = queue.Queue()
     device_name = "TPBias-pi-gatt-uart" # TODO: replace with your own (unique) device name
     threading.Thread(target=ble_gatt_uart_loop, args=(rx_q, tx_q, device_name), daemon=True).start()
-    lcd.send_string("BLE Server Ready", lcd.LCD_LINE_2)
+    lcd.send_string("BLE Server Ready", lcd.LCD_LINE_1)
 
     servorMotor = ServoMotor()
-
+    start_time = time.time()
     try:
+        message = '__init__'
         while True:
+            current_time = time.time()
             try:
-                incoming = rx_q.get(timeout=1) # Wait for up to 1 second 
+                incoming = rx_q.get(timeout=.1) # Wait for up to .1 seconds
                 if incoming:
                     message = "{}".format(incoming)
                     print(message)
@@ -46,22 +48,40 @@ def main():
                 if message == 'Start':
                     buzzer_pwm.ChangeFrequency(4)
                 elif message == 'UD':
-                    servorMotor.turn180degrees()
+                    start_time = current_time
                     buzzer_pwm.ChangeFrequency(20)
                 elif message == 'NUD':
-                    servorMotor.turn0degrees()
                     buzzer_pwm.ChangeFrequency(4)
+                
 
             except Exception as e:
                 pass # nothing in Q 
+            if message == 'UD':
+                lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
+                timer = max((2 - abs(start_time - current_time)), 0)
+                if timer == 0:
+                    lcd.send_string(f'Door Unlocked!', lcd.LCD_LINE_2)
+                    buzzer_pwm.ChangeFrequency(200)
+                    time.sleep(.4)
+                    buzzer_pwm.ChangeFrequency(4)
+                    servorMotor.turn180degrees()
+                else:
+                    lcd.send_string(f'{timer:.2f}', lcd.LCD_LINE_2)
+                    
+            else:
+                lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
+                servorMotor.turn0degrees()
 
             # if i%5 == 0: # Send some data every 5 iterations
             #     tx_q.put("test{}".format(i))
             # i += 1
-    except:
+    except Exception as ex:
+        print(ex)
         pass
     finally:
         servorMotor.turn0degrees()
+        time.sleep(.1)
         lcd.clear()
+        time.sleep(.1)
 if __name__ == '__main__':
     main()
