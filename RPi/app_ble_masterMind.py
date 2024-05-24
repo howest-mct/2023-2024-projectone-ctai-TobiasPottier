@@ -2,6 +2,16 @@ import threading
 import queue
 import LCD
 
+from RPi import GPIO
+import time
+
+GPIO.setmode(GPIO.BCM)
+buzzer_pin = 4
+GPIO.setup(buzzer_pin, GPIO.OUT)
+buzzer_pwm = GPIO.PWM(buzzer_pin, 200)
+buzzer_pwm.start(50)
+buzzer_pwm.ChangeFrequency(1)
+
 lcd = LCD.LCD()
 lcd.clear()
 
@@ -25,10 +35,11 @@ def main():
             try:
                 incoming = rx_q.get(timeout=1) # Wait for up to 1 second 
                 if incoming:
-                    message = ": {}".format(incoming)
+                    message = "{}".format(incoming)
                     print(message)
                     lcd.send_string(message, lcd.LCD_LINE_1)
-                    
+                if message == 'Beep':
+                    buzzer_pwm.ChangeFrequency(200)
             except Exception as e:
                 pass # nothing in Q 
 
