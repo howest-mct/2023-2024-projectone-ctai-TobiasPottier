@@ -4,6 +4,7 @@ import LCD
 
 from RPi import GPIO
 import time
+from ServoMotor import ServoMotor
 
 GPIO.setmode(GPIO.BCM)
 buzzer_pin = 4
@@ -30,6 +31,9 @@ def main():
     device_name = "TPBias-pi-gatt-uart" # TODO: replace with your own (unique) device name
     threading.Thread(target=ble_gatt_uart_loop, args=(rx_q, tx_q, device_name), daemon=True).start()
     lcd.send_string("BLE Server Ready", lcd.LCD_LINE_2)
+
+    servorMotor = ServoMotor()
+
     try:
         while True:
             try:
@@ -37,12 +41,15 @@ def main():
                 if incoming:
                     message = "{}".format(incoming)
                     print(message)
+                    lcd.clear()
                     lcd.send_string(message, lcd.LCD_LINE_1)
                 if message == 'Start':
                     buzzer_pwm.ChangeFrequency(4)
                 elif message == 'UD':
-                    buzzer_pwm.ChangeFrequency(50)
+                    servorMotor.turn180degrees()
+                    buzzer_pwm.ChangeFrequency(20)
                 elif message == 'NUD':
+                    servorMotor.turn0degrees()
                     buzzer_pwm.ChangeFrequency(4)
 
             except Exception as e:
@@ -54,8 +61,7 @@ def main():
     except:
         pass
     finally:
+        servorMotor.turn0degrees()
         lcd.clear()
 if __name__ == '__main__':
     main()
-
-
