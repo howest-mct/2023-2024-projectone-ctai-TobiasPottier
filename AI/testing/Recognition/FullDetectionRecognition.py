@@ -61,7 +61,7 @@ while True:
             predicted_label = label_encoder.inverse_transform([max_index])[0]
 
             # Only display the label if confidence is above a certain threshold
-            confidence_threshold = 0.01
+            confidence_threshold = 0.3
             if confidence > confidence_threshold:
                 # Convert the predicted label to a string
                 predicted_label_str = f"{predicted_label} ({confidence:.2f})"
