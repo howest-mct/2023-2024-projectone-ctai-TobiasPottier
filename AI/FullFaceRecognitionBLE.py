@@ -32,7 +32,7 @@ import os
 
 print('Loading Models...')
 # Load the YOLO model for face detection
-yolo_model = YOLO('./detectionModel.pt')
+yolo_model = YOLO('./detectionModel2.pt')
 
 # Load the FaceNet model for face embedding
 embedder = FaceNet()
