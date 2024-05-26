@@ -40,13 +40,11 @@ Questions for this conversation:
 
 - Question 1: Is the database that i set up, a good structure or should I handle this differently?
 
-This is the feedback on my questions.
-
-- Feedback 1: The setup of the database is good, the information that is needed is there and is all that is needed.
-
 - Question 2: Should I store the database on the PC or on the Raspi?
 
 This is the feedback on my questions.
+
+- Feedback 1: The setup of the database is good, the information that is needed is there and is all that is needed.
 
 - Feedback 2: keep the database wherever you keep your models. If your models are running on your PC, then keep your database there. If they are on the raspi, then set the database there.
 
