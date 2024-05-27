@@ -9,17 +9,42 @@ rx_q = queue.Queue()
 BLE_DEVICE_MAC = "D8:3A:DD:D9:73:57"
 connection_event = Event()
 
-def init_ble_thread():
-    # Creating a new thread for running a function 'run' with specified arguments.
-    ble_client_thread = Thread(target=BLE_client.run, args=(
-        rx_q, tx_q, None, BLE_DEVICE_MAC, connection_event), daemon=True)
-    # Starting the thread execution.
-    ble_client_thread.start()
-init_ble_thread()
-connection_event.wait()
+# def init_ble_thread():
+#     # Creating a new thread for running a function 'run' with specified arguments.
+#     ble_client_thread = Thread(target=BLE_client.run, args=(
+#         rx_q, tx_q, None, BLE_DEVICE_MAC, connection_event), daemon=True)
+#     # Starting the thread execution.
+#     ble_client_thread.start()
+# init_ble_thread()
+# connection_event.wait()
 
 #endregion
 print('BLE CONNECTION ESTABLISHED')
+
+
+#region Retrieve Labels from MySQL
+import mysql.connector
+print('Connecting to MySQL...')
+conn = mysql.connector.connect(
+    host='localhost',
+    user='root',
+    password='root',
+    database='face_recognition'
+)
+cursor = conn.cursor()
+
+def retrieve_label_mapping():
+    cursor.execute("SELECT LabelID, FaceName FROM face_name")
+    results = cursor.fetchall()
+    return {label: name for label, name in results}
+
+label_mapping = retrieve_label_mapping()
+print('Label mapping retrieved from MySQL:', label_mapping)
+
+cursor.close()
+conn.close()
+#endregion
+
 
 #region Face Recognition
 import cv2
@@ -38,13 +63,11 @@ yolo_model = YOLO('./detectionModel2.pt')
 embedder = FaceNet()
 
 # Load the trained classifier and label encoder
-with open('classifierModel.pkl', 'rb') as f:
+with open('SVM_classifier.pkl', 'rb') as f:
     classifier = pickle.load(f)
-with open('label_encoder.pkl', 'rb') as f:
-    label_encoder = pickle.load(f)
 
 print('Models Succesfully Loaded!')
-
+print('Opening Camera...')
 # Open a connection to the webcam
 cap = cv2.VideoCapture(0)
 
@@ -63,7 +86,8 @@ def clear_queue(q):
 
 #last user detected state
 last_state = None
-user_name = 'Tobias' # This name must be one of the labels in the dataset
+print('Program Ready!')
+
 while True:
     # Capture frame-by-frame
     ret, frame = cap.read()
@@ -100,19 +124,19 @@ while True:
             probabilities = classifier.predict_proba(embeddings)  # this gives you each probability per class
             max_index = np.argmax(probabilities)  # max index = label of the person who has the highest probability
             confidence = probabilities[0][max_index]
-            predicted_label = label_encoder.inverse_transform([max_index])[0]
+            predicted_label = max_index
 
             # Only display the label if confidence is above a certain threshold
-            confidence_threshold = 0.90
+            confidence_threshold = 0.80
             if confidence > confidence_threshold:
                 # Convert the predicted label to a string
-                predicted_label_str = f"{predicted_label} ({confidence:.2f})"
+                predicted_label_str = f"{predicted_label} (={label_mapping[predicted_label]}) | ({confidence:.2f})"
 
                 # Draw bounding box and label on the frame
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
                 cv2.putText(frame, f'{predicted_label_str}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
                
-                if predicted_label == user_name:
+                if predicted_label == 1:
                     current_state = 'UD'
                 else:
                     current_state = 'NUD'
