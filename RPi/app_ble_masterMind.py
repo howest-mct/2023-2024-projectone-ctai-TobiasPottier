@@ -23,8 +23,9 @@ from bluetooth_uart_server.bluetooth_uart_server import ble_gatt_uart_loop
 # (maybe together with you Bluetooth device name or Bluetooth MAC?)
 
 MAC_ADDRESS = "D8:3A:DD:D9:73:57"
-
 def main():
+    connection_made = False
+    door_locked = True
     i = 0
     rx_q = queue.Queue()
     tx_q = queue.Queue()
@@ -44,6 +45,7 @@ def main():
                     message = "{}".format(incoming)
                     print(message)
                 if message == 'Start':
+                    connection_made = True
                     buzzer_pwm.ChangeFrequency(4)
                     lcd.clear()
                     lcd.send_string('Connected!', lcd.LCD_LINE_1)
@@ -57,29 +59,34 @@ def main():
 
             except Exception as e:
                 pass # nothing in Q 
-            if message == 'UD':
+            if message == 'UD' and door_locked:
+                lcd.backlight_on()
                 timer = max((2 - abs(start_time - current_time)), 0)
                 lcd.send_string('User Found!', lcd.LCD_LINE_1)
                 if timer == 0:
-                    lcd.send_string(f'Door Unlocked!', lcd.LCD_LINE_2)
-                    servorMotor.turn180degrees()
+                    door_locked = False
                 else:
                     lcd.send_string(f'Auth... {timer:.2f}', lcd.LCD_LINE_2)
                     
-            else:
+            elif connection_made and door_locked:
+                lcd.backlight_off()
                 lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
                 servorMotor.turn0degrees()
-
+                
+            elif not door_locked:
+                lcd.send_string(f'Door Unlocked!', lcd.LCD_LINE_2)
+                servorMotor.turn180degrees()
             # if i%5 == 0: # Send some data every 5 iterations
             #     tx_q.put("test{}".format(i))
             # i += 1
     except Exception as ex:
         print(ex)
-        pass
     finally:
         servorMotor.turn0degrees()
         time.sleep(.1)
         lcd.clear()
+        time.sleep(.1)
+        lcd.backlight_off()
         time.sleep(.1)
 if __name__ == '__main__':
     main()
