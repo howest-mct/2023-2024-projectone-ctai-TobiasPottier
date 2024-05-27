@@ -38,8 +38,16 @@ def retrieve_label_mapping():
     results = cursor.fetchall()
     return {label: name for label, name in results}
 
+def retrieve_auth_labels():
+    cursor.execute("SELECT LabelID FROM auth")
+    results = cursor.fetchall()
+    return [label[0] for label in results]
+
 label_mapping = retrieve_label_mapping()
 print('Label mapping retrieved from MySQL:', label_mapping)
+
+auth_labels = retrieve_auth_labels()
+print('Authenticated labels:', auth_labels)
 
 cursor.close()
 conn.close()
@@ -47,6 +55,7 @@ conn.close()
 
 
 #region Face Recognition
+print('Loading Models...')
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -55,7 +64,6 @@ import pickle
 import os
 
 
-print('Loading Models...')
 # Load the YOLO model for face detection
 yolo_model = YOLO('./detectionModel2.pt')
 
@@ -133,17 +141,18 @@ while True:
                 predicted_label_str = f"{predicted_label} (={label_mapping[predicted_label]}) | ({confidence:.2f})"
 
                 # Draw bounding box and label on the frame
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
                 cv2.putText(frame, f'{predicted_label_str}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
                
-                if predicted_label == 1:
+                if predicted_label in auth_labels:
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     current_state = 'UD'
                 else:
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
                     current_state = 'NUD'
                 
             else:
                 # Draw bounding box and label on the frame
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
                 cv2.putText(frame, f'Non-User', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
                 current_state = 'NUD'
 
