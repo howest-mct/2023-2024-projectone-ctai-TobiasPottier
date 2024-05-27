@@ -82,9 +82,6 @@ grid_search = GridSearchCV(estimator = model,
                            verbose = 1)
 grid_search = grid_search.fit(X_train, y_train)
 
-best_accuracy = grid_search.best_score_ 
-best_parameters = grid_search.best_params_  
-
 print('Best accuracy : ', grid_search.best_score_)
 print('Best parameters :', grid_search.best_params_)
 
@@ -103,7 +100,7 @@ print(cf)
 accuracy = accuracy_score(y_val, y_pred) * 100
 print(f"Validation Accuracy: {accuracy:.2f}%")
 
-# Save the classifier and label encoder
+# Save the classifier
 with open('SVM_classifier.pkl', 'wb') as f:
     pickle.dump(SVMmodel, f)
 

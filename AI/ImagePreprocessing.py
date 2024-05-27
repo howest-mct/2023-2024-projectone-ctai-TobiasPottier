@@ -198,7 +198,7 @@ def TrainAndManageClassifier(current_classifier_dir, backup_classifier_dir):
     
     # Determine the next index for the backup classifier
     if existing_classifiers:
-        indices = [int(f.split('_')[-1]) for f in existing_classifiers]
+        indices = [int(f.split('_')[-1].split('.')[0]) for f in existing_classifiers]
         next_index = max(indices) + 1
     else:
         next_index = 1
@@ -306,6 +306,35 @@ def TrainAndManageClassifier(current_classifier_dir, backup_classifier_dir):
     # For example, I might set a flag or send a message over a network, etc.
     # This part is left for later implementation.
 
+def insert_label_and_name(label_id, user_name):
+    # Connect to MySQL database
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='root',
+        database='face_recognition'
+    )
+    cursor = conn.cursor()
+
+    # Insert the LabelID and FaceName into the face_name table
+    cursor.execute(
+        "INSERT INTO face_name (LabelID, FaceName) VALUES (%s, %s)",
+        (label_id, user_name)
+    )
+    conn.commit()
+
+    # Close the database connection
+    cursor.close()
+    conn.close()
+
+    print(f"LabelID {label_id} and UserName {user_name} have been successfully inserted into the face_name table.")
+
+def create_flag_file(flag_file):
+    # Create the flag file to signal the real-time script
+    with open(flag_file, 'w') as f:
+        f.write("Reload classifier")
+
+
 #endregion 
 
 #region FindFolder
@@ -323,7 +352,7 @@ def get_highest_index_folder_path(parent_directory):
 
     return os.path.join(parent_directory, highest_index_folder)
 
-def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classifier_dir, backup_classifier_dir):
+def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classifier_dir, backup_classifier_dir, user_name, flag_file):
     """Check for READY.txt file in the specified folder and create it if not present."""
     ready_file_path = os.path.join(folder_path, 'READY.txt')
     ImagesPath = os.path.join(folder_path, 'Unfiltered')
@@ -345,9 +374,12 @@ def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classi
             if user_auth:
                 print('Entering LabelID in AUTH SQL Database...')
                 insert_auth_label(os.path.basename(folder_path))
+            print('Entering Label and UserName in face_name SQL Database')
+            insert_label_and_name(os.path.basename(folder_path), user_name)
             print('ALL PROCESSES COMPLETE!')
             print('Training Classifier...')
             TrainAndManageClassifier(current_classifier_dir=current_classifier_dir, backup_classifier_dir=backup_classifier_dir)
+            create_flag_file(flag_file)
         else:
             print('ERROR: READY.txt is not there, but Unfiltered folder is also not present')
         # Create the READY.txt file
@@ -360,11 +392,12 @@ def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classi
 
 
 
-def main():
+def main(user_name):
     dataset_dir = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset"
     labels_csv = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubLabels/labels.csv"
     current_classifier_dir = "./"
     backup_classifier_dir = "./BackupModels"
+    flag_file = "./flag/reload_flag.txt"
     user_auth_choice = input('Is the latest user authenticated to enter?(Y/N): ').upper()
     user_auth = False
     if user_auth_choice == 'Y':
@@ -372,11 +405,11 @@ def main():
     try:
         highest_index_folder_path = get_highest_index_folder_path(dataset_dir)
         print(f"Highest index folder: {highest_index_folder_path}")
-        check_and_preprocess(highest_index_folder_path, labels_csv, user_auth, current_classifier_dir, backup_classifier_dir)
+        check_and_preprocess(highest_index_folder_path, labels_csv, user_auth, current_classifier_dir, backup_classifier_dir, user_name, flag_file)
     except Exception as e:
         print(f"An error occurred: {e}")
 
 #endregion
 
 if __name__ == "__main__":
-    main()
+    main('Tomas')

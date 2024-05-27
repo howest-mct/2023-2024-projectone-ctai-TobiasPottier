@@ -1,78 +1,98 @@
-
-#region BLE connection
-print('Starting BLE Client...')
+#region imports
 import queue
 import BLE_client
 from threading import Event, Thread
+import mysql.connector
+import time
+import pickle
+import os
+import cv2
+import numpy as np
+from ultralytics import YOLO
+from keras_facenet import FaceNet
+#endregion
+
+
+#region BLE connection
+print('Starting BLE Client...')
 tx_q = queue.Queue()
 rx_q = queue.Queue()
 BLE_DEVICE_MAC = "D8:3A:DD:D9:73:57"
 connection_event = Event()
 
-def init_ble_thread():
-    # Creating a new thread for running a function 'run' with specified arguments.
-    ble_client_thread = Thread(target=BLE_client.run, args=(
-        rx_q, tx_q, None, BLE_DEVICE_MAC, connection_event), daemon=True)
-    # Starting the thread execution.
-    ble_client_thread.start()
-init_ble_thread()
-connection_event.wait()
-
-#endregion
+# def init_ble_thread():
+#     # Creating a new thread for running a function 'run' with specified arguments.
+#     ble_client_thread = Thread(target=BLE_client.run, args=(
+#         rx_q, tx_q, None, BLE_DEVICE_MAC, connection_event), daemon=True)
+#     # Starting the thread execution.
+#     ble_client_thread.start()
+# init_ble_thread()
+# connection_event.wait()
 print('BLE CONNECTION ESTABLISHED')
-
-
-#region Retrieve Labels from MySQL
-import mysql.connector
-print('Connecting to MySQL...')
-conn = mysql.connector.connect(
-    host='localhost',
-    user='root',
-    password='root',
-    database='face_recognition'
-)
-cursor = conn.cursor()
-
-def retrieve_label_mapping():
-    cursor.execute("SELECT LabelID, FaceName FROM face_name")
-    results = cursor.fetchall()
-    return {label: name for label, name in results}
-
-def retrieve_auth_labels():
-    cursor.execute("SELECT LabelID FROM auth")
-    results = cursor.fetchall()
-    return [label[0] for label in results]
-
-label_mapping = retrieve_label_mapping()
-print('Label mapping retrieved from MySQL:', label_mapping)
-
-auth_labels = retrieve_auth_labels()
-print('Authenticated labels:', auth_labels)
-
-cursor.close()
-conn.close()
 #endregion
 
+#region flagging and data retrieval
+
+FLAG_FILE_PATH = './flag/reload_flag.txt'
+CURRENT_CLASSIFIER_PATH = 'SVM_classifier.pkl'
+def reload_resources():
+    global classifier, label_mapping, auth_labels
+
+    # Load the trained classifier
+    with open(CURRENT_CLASSIFIER_PATH, 'rb') as f:
+        classifier = pickle.load(f)
+
+    # Reload SQL data
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='root',
+        database='face_recognition'
+    )
+    cursor = conn.cursor()
+
+    def retrieve_label_mapping():
+        cursor.execute("SELECT LabelID, FaceName FROM face_name")
+        results = cursor.fetchall()
+        return {label: name for label, name in results}
+
+    def retrieve_auth_labels():
+        cursor.execute("SELECT LabelID FROM auth")
+        results = cursor.fetchall()
+        return [label[0] for label in results]
+
+    label_mapping = retrieve_label_mapping()
+    auth_labels = retrieve_auth_labels()
+    print(f'Labels: {label_mapping}')
+    print(f'Auth: {auth_labels}')
+    cursor.close()
+    conn.close()
+    print("Resources reloaded.")
+
+# Function to monitor the flag file
+def monitor_flag_file():
+    while True:
+        if os.path.exists(FLAG_FILE_PATH):
+            reload_resources()
+            os.remove(FLAG_FILE_PATH)
+        time.sleep(5)  # Check every 5 seconds
+
+# Start monitoring the flag file in a separate thread
+flag_monitor_thread = Thread(target=monitor_flag_file, daemon=True)
+flag_monitor_thread.start()
+
+print('Getting Data from SQL Database...')
+reload_resources()
+#endregion
 
 #region Face Recognition
+
 print('Loading Models...')
-import cv2
-import numpy as np
-from ultralytics import YOLO
-from keras_facenet import FaceNet
-import pickle
-import os
-
-
 # Load the YOLO model for face detection
 yolo_model = YOLO('./detectionModel2.pt')
 
 # Load the FaceNet model for face embedding
 embedder = FaceNet()
-
-# Load the trained classifier and label encoder
-with open('SVM_classifier.pkl', 'rb') as f:
-    classifier = pickle.load(f)
 
 print('Models Succesfully Loaded!')
 print('Opening Camera...')
