@@ -9,14 +9,14 @@ rx_q = queue.Queue()
 BLE_DEVICE_MAC = "D8:3A:DD:D9:73:57"
 connection_event = Event()
 
-# def init_ble_thread():
-#     # Creating a new thread for running a function 'run' with specified arguments.
-#     ble_client_thread = Thread(target=BLE_client.run, args=(
-#         rx_q, tx_q, None, BLE_DEVICE_MAC, connection_event), daemon=True)
-#     # Starting the thread execution.
-#     ble_client_thread.start()
-# init_ble_thread()
-# connection_event.wait()
+def init_ble_thread():
+    # Creating a new thread for running a function 'run' with specified arguments.
+    ble_client_thread = Thread(target=BLE_client.run, args=(
+        rx_q, tx_q, None, BLE_DEVICE_MAC, connection_event), daemon=True)
+    # Starting the thread execution.
+    ble_client_thread.start()
+init_ble_thread()
+connection_event.wait()
 
 #endregion
 print('BLE CONNECTION ESTABLISHED')
