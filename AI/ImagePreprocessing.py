@@ -380,15 +380,16 @@ def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classi
                 insert_auth_label(os.path.basename(folder_path))
             print('Entering Label and UserName in face_name SQL Database')
             insert_label_and_name(os.path.basename(folder_path), user_name)
-            print('ALL PROCESSES COMPLETE!')
             print('Training Classifier...')
             TrainAndManageClassifier(current_classifier_dir=current_classifier_dir, backup_classifier_dir=backup_classifier_dir)
+            print('Creating Flag File... (./flag/)')
             create_flag_file(flag_file)
+            print('Creating Ready.txt in Pictures Folder...')
+            with open(ready_file_path, 'w') as f:
+                f.write("This is the READY.txt file.")
+            print('ALL PROCESSES COMPLETE!')
         else:
             print('ERROR: READY.txt is not there, but Unfiltered folder is also not present')
-        # Create the READY.txt file
-        with open(ready_file_path, 'w') as f:
-            f.write("This is the READY.txt file.")
         print("READY.txt file has been created.")
     else:
         print("READY.txt already exists in the folder.")
