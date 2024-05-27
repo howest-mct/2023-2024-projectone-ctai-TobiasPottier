@@ -43,30 +43,28 @@ def main():
                 if incoming:
                     message = "{}".format(incoming)
                     print(message)
-                    lcd.clear()
-                    lcd.send_string(message, lcd.LCD_LINE_1)
                 if message == 'Start':
                     buzzer_pwm.ChangeFrequency(4)
+                    lcd.clear()
+                    lcd.send_string('Connected!', lcd.LCD_LINE_1)
                 elif message == 'UD':
                     start_time = current_time
-                    buzzer_pwm.ChangeFrequency(20)
+                    buzzer_pwm.ChangeFrequency(10)
                 elif message == 'NUD':
+                    lcd.clear()
                     buzzer_pwm.ChangeFrequency(4)
                 
 
             except Exception as e:
                 pass # nothing in Q 
             if message == 'UD':
-                lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
                 timer = max((2 - abs(start_time - current_time)), 0)
+                lcd.send_string('User Found!', lcd.LCD_LINE_1)
                 if timer == 0:
                     lcd.send_string(f'Door Unlocked!', lcd.LCD_LINE_2)
-                    buzzer_pwm.ChangeFrequency(200)
-                    time.sleep(.4)
-                    buzzer_pwm.ChangeFrequency(4)
                     servorMotor.turn180degrees()
                 else:
-                    lcd.send_string(f'{timer:.2f}', lcd.LCD_LINE_2)
+                    lcd.send_string(f'Auth... {timer:.2f}', lcd.LCD_LINE_2)
                     
             else:
                 lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
