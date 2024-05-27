@@ -1,11 +1,24 @@
-#region Preprocessing
-print('Importing YOLO model...')
+#region Imports
+print('Importing Libraries...')
 import os
 from PIL import Image
 import cv2
 import os
 from ultralytics import YOLO
 import numpy as np
+import imgaug.augmenters as iaa
+from glob import glob
+import pandas as pd
+from keras_facenet import FaceNet
+import pickle
+import mysql.connector
+import shutil
+from sklearn.svm import SVC
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+#endregion
+#region Preprocessing
+print('Importing YOLO model...')
 
 model = YOLO('./detectionModel2.pt')
 def detect_and_crop_faces(input_folder, output_folder):
@@ -45,8 +58,7 @@ def detect_and_crop_faces(input_folder, output_folder):
                     print(f"Saved cropped face to {face_path}")
                     index+=1
 
-import imgaug.augmenters as iaa
-from glob import glob
+
 def augment_images_in_directory(image_dir):
     # Function to augment images
     def augment_images(image_paths, augmenters, output_dir):
@@ -84,7 +96,6 @@ def augment_images_in_directory(image_dir):
     # Augment images and save them
     augment_images(image_paths, augmenters, image_dir)
 
-import pandas as pd
 def create_labels_csv(input_dir, output_csv):
     # List to hold the image paths and labels
     data = []
@@ -109,10 +120,7 @@ def create_labels_csv(input_dir, output_csv):
     
     print(f"Labels CSV appended/created at: {output_csv}")
 
-import pandas as pd
-from keras_facenet import FaceNet
-import pickle
-import mysql.connector 
+
 def embed_and_store_images(image_dir):
     # Load the FaceNet model
     embedder = FaceNet()
@@ -182,10 +190,6 @@ def insert_auth_label(label_id):
     print(f"LabelID {label_id} has been successfully inserted into the auth table.")
 
 
-import shutil
-from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
 def TrainAndManageClassifier(current_classifier_dir, backup_classifier_dir):
     # Ensure backup directory exists
