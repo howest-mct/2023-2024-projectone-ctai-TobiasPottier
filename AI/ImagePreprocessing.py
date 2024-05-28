@@ -387,10 +387,12 @@ def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classi
             print('Creating Ready.txt in Pictures Folder...')
             with open(ready_file_path, 'w') as f:
                 f.write("This is the READY.txt file.")
+            print("READY.txt file has been created.")
             print('ALL PROCESSES COMPLETE!')
+            return
         else:
             print('ERROR: READY.txt is not there, but Unfiltered folder is also not present')
-        print("READY.txt file has been created.")
+            return
     else:
         print("READY.txt already exists in the folder.")
         return

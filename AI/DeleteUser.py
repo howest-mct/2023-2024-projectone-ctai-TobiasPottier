@@ -161,6 +161,42 @@ def TrainAndReplaceModel(current_classifier_dir, backup_classifier_dir):
     # This part is left for later implementation.
     pass
 
+def delete_files_in_label_folder(images_user_dataset_dir, label_id):
+    # Construct the path to the folder with the given label_id
+    target_folder_path = os.path.join(images_user_dataset_dir, str(label_id))
+    
+    if os.path.isdir(target_folder_path):
+        # Delete all .jpg files and the READY.txt file in the specified folder
+        for filename in os.listdir(target_folder_path):
+            file_path = os.path.join(target_folder_path, filename)
+            try:
+                if filename.endswith('.jpg') or filename == 'READY.txt':
+                    os.remove(file_path)
+                    print(f"Deleted file: {file_path}")
+            except Exception as e:
+                print(f"Failed to delete {file_path}. Reason: {e}")
+
+        # Check and delete the 'Unfiltered' folder if it exists
+        unfiltered_folder_path = os.path.join(target_folder_path, 'Unfiltered')
+        if os.path.isdir(unfiltered_folder_path):
+            try:
+                for filename in os.listdir(unfiltered_folder_path):
+                    file_path = os.path.join(unfiltered_folder_path, filename)
+                    os.remove(file_path)
+                os.rmdir(unfiltered_folder_path)
+                print(f"Deleted folder: {unfiltered_folder_path}")
+            except Exception as e:
+                print(f"Failed to delete folder {unfiltered_folder_path}. Reason: {e}")
+                
+        print('Creating Death File...')
+        create_death_file(os.path.join(target_folder_path, "Death.txt"))
+    else:
+        print(f"Folder with label ID {label_id} not found at {images_user_dataset_dir}")
+
+def create_death_file(death_file):
+    with open(death_file, 'w') as f:
+        f.write(" -- This LabelID has deleted all their records")
+
 def create_flag_file(flag_file):
     # Create the flag file to signal the real-time script
     with open(flag_file, 'w') as f:
@@ -176,6 +212,7 @@ def main(user_name):
     )
     cursor = conn.cursor()
     labels_csv_dir = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubLabels/labels.csv"
+    users_images_dataset_dir = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset"
     flag_file = "./flag/reload_flag.txt"
     try:
         print('Getting LabelID...')
@@ -191,17 +228,20 @@ def main(user_name):
             print('Deleting annotations in labels.csv...')
             delete_labels_csv_rows(labels_csv_dir, label_id)
             conn.commit()  # Commit all changes once at the end
-            print('All processes complete!')
+            print('Deleting Images...')
+            delete_files_in_label_folder(users_images_dataset_dir, label_id)
             userInputTraining = input('Do you want to train a classifier again and put it in production?(Y/N): ')
             if userInputTraining.upper() != 'Y':
                 print('Model Training Cancelled!')
                 return
-            print('Training Classifier...')
-            current_classifier_dir = "./"
-            backup_classifier_dir = "./BackupModels"
-            TrainAndReplaceModel(current_classifier_dir, backup_classifier_dir)
+            else:
+                print('Training Classifier...')
+                current_classifier_dir = "./"
+                backup_classifier_dir = "./BackupModels"
+                TrainAndReplaceModel(current_classifier_dir, backup_classifier_dir)
             print('Creating Flag File... (./flag/)')
             create_flag_file(flag_file)
+            print('All processes complete!')
         else:
             print(f"Name {user_name} not found in the database.")
             print('Delete CANCELLED')
