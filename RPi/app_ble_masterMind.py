@@ -96,6 +96,7 @@ def main():
                 servorMotor.turn0degrees()
                 
             elif not door_locked:
+                lcd.send_string(f'{" "*16}', lcd.LCD_LINE_1)
                 lcd.send_string(f'Door Unlocked!', lcd.LCD_LINE_2)
                 servorMotor.turn180degrees()
             # if i%5 == 0: # Send some data every 5 iterations
