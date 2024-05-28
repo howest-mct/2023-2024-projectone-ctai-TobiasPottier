@@ -13,6 +13,17 @@ buzzer_pwm = GPIO.PWM(buzzer_pin, 200)
 buzzer_pwm.start(50)
 buzzer_pwm.ChangeFrequency(1)
 
+btn_pin = 16
+GPIO.setup(btn_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+def door_btn(channel):
+    global door_locked
+    if GPIO.input(channel) == 0:
+        print('Btn')
+        door_locked = True
+        
+GPIO.add_event_detect(btn_pin, GPIO.BOTH, callback=door_btn, bouncetime=150)
+
+
 lcd = LCD.LCD()
 lcd.clear()
 
@@ -22,10 +33,22 @@ from bluetooth_uart_server.bluetooth_uart_server import ble_gatt_uart_loop
 # extend this code so the value received via Bluetooth gets printed on the LCD
 # (maybe together with you Bluetooth device name or Bluetooth MAC?)
 
+def stop_buzzer():
+    global buzzer_pwm, buzzer_pin
+    buzzer_pwm.stop()
+    GPIO.output(buzzer_pin, GPIO.LOW)
+
+def start_buzzer(frequency):
+    global buzzer_pwm, buzzer_pin
+    buzzer_pwm = GPIO.PWM(buzzer_pin, frequency)
+    buzzer_pwm.start(50)
+
+
 MAC_ADDRESS = "D8:3A:DD:D9:73:57"
+door_locked = True
+connection_made = False
 def main():
-    connection_made = False
-    door_locked = True
+    global door_locked, connection_made
     i = 0
     rx_q = queue.Queue()
     tx_q = queue.Queue()
@@ -46,15 +69,14 @@ def main():
                     print(message)
                 if message == 'Start':
                     connection_made = True
-                    buzzer_pwm.ChangeFrequency(4)
+                    stop_buzzer()
                     lcd.clear()
                     lcd.send_string('Connected!', lcd.LCD_LINE_1)
                 elif message == 'UD':
                     start_time = current_time
-                    buzzer_pwm.ChangeFrequency(10)
+                    buzzer_pwm.ChangeFrequency(4)
                 elif message == 'NUD':
                     lcd.clear()
-                    buzzer_pwm.ChangeFrequency(4)
                 
 
             except Exception as e:
