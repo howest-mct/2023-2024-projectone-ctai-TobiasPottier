@@ -16,10 +16,14 @@ buzzer_pwm.ChangeFrequency(1)
 btn_pin = 16
 GPIO.setup(btn_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 def door_btn(channel):
-    global door_locked
+    global door_locked, start_time, current_time, open_door
     if GPIO.input(channel) == 0:
-        print('Btn')
-        door_locked = True
+        if door_locked == False:
+            door_locked = True
+        else:
+            open_door = True
+        start_time = current_time
+        
         
 GPIO.add_event_detect(btn_pin, GPIO.BOTH, callback=door_btn, bouncetime=150)
 
@@ -47,8 +51,12 @@ def start_buzzer(frequency):
 MAC_ADDRESS = "D8:3A:DD:D9:73:57"
 door_locked = True
 connection_made = False
+start_time = time.time()
+current_time = time.time()
+open_door = False
+
 def main():
-    global door_locked, connection_made
+    global door_locked, connection_made, start_time, current_time, open_door
     i = 0
     rx_q = queue.Queue()
     tx_q = queue.Queue()
@@ -57,9 +65,8 @@ def main():
     lcd.send_string("BLE Server Ready", lcd.LCD_LINE_1)
 
     servorMotor = ServoMotor()
-    start_time = time.time()
+    message = 'NUD'
     try:
-        message = '__init__'
         while True:
             current_time = time.time()
             try:
@@ -73,30 +80,44 @@ def main():
                     lcd.clear()
                     lcd.send_string('Connected!', lcd.LCD_LINE_1)
                 elif message == 'UD':
-                    start_time = current_time
-                    buzzer_pwm.ChangeFrequency(4)
+                    if not open_door:
+                        start_time = current_time
                 elif message == 'NUD':
                     lcd.clear()
-                
-
             except Exception as e:
                 pass # nothing in Q 
-            if message == 'UD' and door_locked:
-                lcd.backlight_on()
-                timer = max((2 - abs(start_time - current_time)), 0)
-                lcd.send_string('User Found!', lcd.LCD_LINE_1)
-                if timer == 0:
-                    door_locked = False
+
+
+            if door_locked and connection_made:
+                if open_door:
+                    lcd.send_string(f'{" "*16}', lcd.LCD_LINE_1)
+                    lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
+                    lcd.backlight_on()
+                    servorMotor.turn180degrees()
+                    timer = max((10 - abs(start_time - current_time)), 0)
+                    if timer == 0:
+                        open_door = False
+                        start_time = current_time
+                    else:
+                        lcd.send_string(f'Closing... {timer:.2f}', lcd.LCD_LINE_2)
                 else:
-                    lcd.send_string(f'Auth... {timer:.2f}', lcd.LCD_LINE_2)
-                    
-            elif connection_made and door_locked:
-                lcd.backlight_off()
-                lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
-                servorMotor.turn0degrees()
-                
-            elif not door_locked:
+                    servorMotor.turn0degrees()
+                    lcd.send_string(f'{" "*16}', lcd.LCD_LINE_1)
+                    lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
+                    if message == 'UD':
+                        lcd.backlight_on()
+                        timer = max((2 - abs(start_time - current_time)), 0)
+                        lcd.send_string('User Found!', lcd.LCD_LINE_1)
+                        if timer == 0:
+                            door_locked = False
+                        else:
+                            lcd.send_string(f'Auth... {timer:.2f}', lcd.LCD_LINE_2)
+                    else:
+                        lcd.backlight_off()
+                        lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
+            elif not door_locked and connection_made:
                 lcd.send_string(f'{" "*16}', lcd.LCD_LINE_1)
+                lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
                 lcd.send_string(f'Door Unlocked!', lcd.LCD_LINE_2)
                 servorMotor.turn180degrees()
             # if i%5 == 0: # Send some data every 5 iterations
