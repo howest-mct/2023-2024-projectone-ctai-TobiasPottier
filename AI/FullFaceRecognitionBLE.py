@@ -38,7 +38,7 @@ print('BLE CONNECTION ESTABLISHED')
 FLAG_FILE_PATH = './flag/reload_flag.txt'
 CURRENT_CLASSIFIER_PATH = 'SVM_classifier.pkl'
 def reload_resources():
-    global classifier, label_mapping, auth_labels, known_embeddings
+    global classifier, label_mapping, auth_labels, known_embeddings, sequential_list_labels
 
     # Load the trained classifier
     with open(CURRENT_CLASSIFIER_PATH, 'rb') as f:
@@ -77,8 +77,13 @@ def reload_resources():
     label_mapping = retrieve_label_mapping()
     auth_labels = retrieve_auth_labels()
     known_embeddings = retrieve_known_embeddings()
+    
+    # Create the sequential list based on the number of keys in label_mapping
+    sequential_list_labels = list(label_mapping.keys())
+
     print(f'Labels: {label_mapping}')
     print(f'Auth: {auth_labels}')
+    print(f'Label List: {sequential_list_labels}')
     cursor.close()
     conn.close()
     print("Resources reloaded.")
@@ -166,7 +171,7 @@ while True:
             probabilities = classifier.predict_proba(embeddings)  # this gives you each probability per class
             max_index = np.argmax(probabilities)  # max index = label of the person who has the highest probability
             confidence = probabilities[0][max_index]
-            predicted_label = max_index
+            predicted_label = sequential_list_labels[max_index]
 
             # Compute the Euclidean distance to known faces
             known_embeddings_for_label = known_embeddings[predicted_label]
@@ -174,7 +179,7 @@ while True:
             min_distance = min(distances)
 
             # Only display the label if confidence is above a certain threshold
-            confidence_threshold = 0.80
+            confidence_threshold = 0.50
             euclidean_distance_treshold = 0.70
             if confidence > confidence_threshold and min_distance < euclidean_distance_treshold:
                 # Convert the predicted label to a string

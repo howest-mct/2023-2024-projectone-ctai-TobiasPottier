@@ -36,7 +36,7 @@ def delete_uploaded_images(upload_folder):
 
 @app.route('/')
 def index():
-    return "In progress, go to /upload"
+    return "In progress, go to /upload or /delete"
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_files():

@@ -201,6 +201,14 @@ def delete_files_in_label_folder(images_user_dataset_dir, label_id):
     else:
         print(f"Folder with label ID {label_id} not found at {images_user_dataset_dir}")
 
+def delete_label_folder(images_user_dataset_dir, label_id):
+    target_folder_path = os.path.join(images_user_dataset_dir, str(label_id))
+    try:
+        shutil.rmtree(target_folder_path)
+        print(f"Deleted folder: {target_folder_path}")
+    except Exception as e:
+        print(f"Failed to delete folder {target_folder_path}. Reason: {e}")
+
 def create_death_file(death_file):
     with open(death_file, 'w') as f:
         f.write(" -- This LabelID has deleted all their records")
@@ -243,6 +251,8 @@ def main(user_name, user_password):
             conn.commit()  # Commit all changes once at the end
             print('Deleting Images...')
             delete_files_in_label_folder(users_images_dataset_dir, label_id)
+            print('Deleting LabelID Folder...')
+            delete_label_folder(users_images_dataset_dir, label_id)
             print('Training Classifier...')
             current_classifier_dir = "./"
             backup_classifier_dir = "./BackupModels"
@@ -271,5 +281,5 @@ if __name__ == "__main__":
     # if userInput2.upper() != 'Y':
     #     print('Delete CANCELLED')
     #     exit()
-    # main(name)
+    # main(name, "Tomi3")
     print('Script ran from __main__, no chages made')
