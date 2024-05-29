@@ -94,3 +94,4 @@ tensorflow==2.16.1
 scikit-learn==1.5.0
 imgaug==0.4.0
 mysql-connector-python==8.4.0
+flask==3.0.3

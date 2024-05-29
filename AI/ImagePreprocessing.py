@@ -399,13 +399,13 @@ def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classi
 
 
 
-def main(user_name):
+def main(user_name, user_auth_choice):
     dataset_dir = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset"
     labels_csv = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubLabels/labels.csv"
     current_classifier_dir = "./"
     backup_classifier_dir = "./BackupModels"
     flag_file = "./flag/reload_flag.txt"
-    user_auth_choice = input('Is the latest user authenticated to enter?(Y/N): ').upper()
+    # user_auth_choice = input('Is the latest user authenticated to enter?(Y/N): ').upper()
     user_auth = False
     if user_auth_choice == 'Y':
         user_auth = True
@@ -419,4 +419,4 @@ def main(user_name):
 #endregion
 
 if __name__ == "__main__":
-    main('Tomas')
+    print('Script ran from __main__, no changes made')

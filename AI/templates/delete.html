@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Delete User</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="mt-5">Delete User</h1>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="alert alert-warning" role="alert">
+            {% for message in messages %}
+              {{ message }}
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <form method="post">
+        <div class="form-group">
+          <label for="user_name">User Name:</label>
+          <input type="text" class="form-control" name="user_name" required>
+        </div>
+        <button type="submit" class="btn btn-danger">Delete User</button>
+      </form>
+    </div>
+  </body>
+</html>

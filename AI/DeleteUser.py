@@ -240,6 +240,7 @@ def main(user_name):
         else:
             print(f"Name {user_name} not found in the database.")
             print('Delete CANCELLED')
+            raise Exception(f"Name {user_name} not found in the database.")
     except mysql.connector.Error as err:
         print(f"Error: {err}")
         conn.rollback()  # Rollback in case of error
@@ -248,13 +249,14 @@ def main(user_name):
         conn.close() 
 
 if __name__ == "__main__":
-    name = 'Tomas'
-    userInput = input(f'Are you sure you want to delete: {name} ?(Y/N): ')
-    if userInput.upper() != 'Y':
-        print('Delete CANCELLED')
-        exit()
-    userInput2 = input(f'Are you REALLY sure you want to delete FROM ALL DATABASES: {name} ?(Y/N): ')
-    if userInput2.upper() != 'Y':
-        print('Delete CANCELLED')
-        exit()
-    main(name)
+    # name = 'Tomas'
+    # userInput = input(f'Are you sure you want to delete: {name} ?(Y/N): ')
+    # if userInput.upper() != 'Y':
+    #     print('Delete CANCELLED')
+    #     exit()
+    # userInput2 = input(f'Are you REALLY sure you want to delete FROM ALL DATABASES: {name} ?(Y/N): ')
+    # if userInput2.upper() != 'Y':
+    #     print('Delete CANCELLED')
+    #     exit()
+    # main(name)
+    print('Script ran from __main__, no chages made')
