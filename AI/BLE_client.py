@@ -47,8 +47,8 @@ async def uart_terminal(rx_q=None, tx_q=None, targetDeviceName=None, targetDevic
             device = await BleakScanner.find_device_by_filter(match_nus_uuid)
             if device is None:
                 print("No matching device found, Trying again...")
-    except:
-        print('>Manual Exit<')
+    except Exception as ex:
+        print(ex)
         sys.exit()
         
 

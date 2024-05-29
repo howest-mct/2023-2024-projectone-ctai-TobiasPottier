@@ -187,7 +187,7 @@ def delete_files_in_label_folder(images_user_dataset_dir, label_id):
                 print(f"Deleted folder: {unfiltered_folder_path}")
             except Exception as e:
                 print(f"Failed to delete folder {unfiltered_folder_path}. Reason: {e}")
-                
+
         print('Creating Death File...')
         create_death_file(os.path.join(target_folder_path, "Death.txt"))
     else:
@@ -230,15 +230,10 @@ def main(user_name):
             conn.commit()  # Commit all changes once at the end
             print('Deleting Images...')
             delete_files_in_label_folder(users_images_dataset_dir, label_id)
-            userInputTraining = input('Do you want to train a classifier again and put it in production?(Y/N): ')
-            if userInputTraining.upper() != 'Y':
-                print('Model Training Cancelled!')
-                return
-            else:
-                print('Training Classifier...')
-                current_classifier_dir = "./"
-                backup_classifier_dir = "./BackupModels"
-                TrainAndReplaceModel(current_classifier_dir, backup_classifier_dir)
+            print('Training Classifier...')
+            current_classifier_dir = "./"
+            backup_classifier_dir = "./BackupModels"
+            TrainAndReplaceModel(current_classifier_dir, backup_classifier_dir)
             print('Creating Flag File... (./flag/)')
             create_flag_file(flag_file)
             print('All processes complete!')
