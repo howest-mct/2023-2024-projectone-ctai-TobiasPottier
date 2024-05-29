@@ -20,7 +20,7 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 #region Preprocessing
 print('Importing YOLO model...')
 
-model = YOLO('./detectionModel2.pt')
+model = YOLO('./detectionModel3.pt')
 def detect_and_crop_faces(input_folder, output_folder):
     # Create the output folder if it doesn't exist
     if not os.path.exists(output_folder):

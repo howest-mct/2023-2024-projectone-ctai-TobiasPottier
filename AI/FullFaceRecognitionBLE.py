@@ -90,7 +90,7 @@ reload_resources()
 
 print('Loading Models...')
 # Load the YOLO model for face detection
-yolo_model = YOLO('./detectionModel2.pt')
+yolo_model = YOLO('./detectionModel3.pt')
 
 # Load the FaceNet model for face embedding
 embedder = FaceNet()
