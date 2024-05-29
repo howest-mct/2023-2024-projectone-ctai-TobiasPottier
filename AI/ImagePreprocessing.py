@@ -424,7 +424,7 @@ def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classi
             if user_auth:
                 print('Entering LabelID in AUTH SQL Database...')
                 insert_auth_label(os.path.basename(folder_path))
-            print('Entering Label and UserName in face_name SQL Database')
+            print('Entering Label, UserName and password in face_name SQL Database')
             insert_label_and_name(os.path.basename(folder_path), user_name, user_password)
             print('Training Classifier...')
             TrainAndManageClassifier(current_classifier_dir=current_classifier_dir, backup_classifier_dir=backup_classifier_dir)
