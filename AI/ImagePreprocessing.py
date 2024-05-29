@@ -16,27 +16,17 @@ import shutil
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+import time
+
 #endregion
 #region Preprocessing
 print('Importing YOLO model...')
 model = YOLO('./detectionModel3.pt')
 
-def check_user_name_exists(user_name):
-    # Connect to MySQL database
-    conn = mysql.connector.connect(
-        host='localhost',
-        user='root',
-        password='root',
-        database='face_recognition'
-    )
-    cursor = conn.cursor()
-
+def check_user_name_exists(user_name, cursor):
     # Check if the user name exists in the face_name table
     cursor.execute("SELECT 1 FROM face_name WHERE FaceName = %s", (user_name,))
     result = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
 
     if result:
         raise Exception(f"User name {user_name} already exists in the database.")
@@ -166,7 +156,7 @@ def create_labels_csv(input_dir, output_csv):
     print(f"Labels CSV appended/created at: {output_csv}")
 
 
-def embed_and_store_images(image_dir):
+def embed_and_store_images(image_dir, cursor):
     # Load the FaceNet model
     embedder = FaceNet()
 
@@ -179,15 +169,6 @@ def embed_and_store_images(image_dir):
         embeddings = embedder.embeddings(img)
         return embeddings[0]
 
-    # Connect to MySQL database
-    conn = mysql.connector.connect(
-    host='localhost',
-    user='root',
-    password='root',
-    database='face_recognition'
-    )
-    cursor = conn.cursor()
-
     # Function to insert data into MySQL
     def insert_data(embedding, label):
         binary_embedding = pickle.dumps(embedding)
@@ -195,7 +176,6 @@ def embed_and_store_images(image_dir):
             "INSERT INTO face_data (embedding, label) VALUES (%s, %s)",
             (binary_embedding, label)
         )
-        conn.commit()
 
     # Traverse through the directory and embed images
     for image_name in os.listdir(image_dir):
@@ -205,38 +185,28 @@ def embed_and_store_images(image_dir):
             embedding = preprocess_and_embed(image_path)
             insert_data(embedding, label)
 
-    # Close the database connection
-    cursor.close()
-    conn.close()
-
     print("Embeddings and labels have been successfully inserted into the database.")
 
-def insert_auth_label(label_id):
-    # Connect to MySQL database
-    conn = mysql.connector.connect(
-    host='localhost',
-    user='root',
-    password='root',
-    database='face_recognition'
-    )
-    cursor = conn.cursor()
-
+def insert_auth_label(label_id, cursor):
     # Insert the LabelID into the auth table
     cursor.execute(
         "INSERT INTO auth (LabelID) VALUES (%s)",
         (label_id,)
     )
-    conn.commit()
-
-    # Close the database connection
-    cursor.close()
-    conn.close()
 
     print(f"LabelID {label_id} has been successfully inserted into the auth table.")
 
+def insert_label_and_name(label_id, user_name, user_password, cursor):
+    # Insert the LabelID and FaceName into the face_name table
+    cursor.execute(
+        "INSERT INTO face_name (LabelID, FaceName, FacePassword) VALUES (%s, %s, %s)",
+        (label_id, user_name, user_password)
+    )
+
+    print(f"LabelID {label_id} and UserName {user_name} have been successfully inserted into the face_name table.")
 
 
-def TrainAndManageClassifier(current_classifier_dir, backup_classifier_dir):
+def TrainAndManageClassifier(current_classifier_dir, backup_classifier_dir, cursor):
     # Ensure backup directory exists
     print('Backing Up Current Classifier...')
     if not os.path.exists(backup_classifier_dir):
@@ -261,14 +231,6 @@ def TrainAndManageClassifier(current_classifier_dir, backup_classifier_dir):
     # Train the new classifier
     print('-TRAINING MODEL-')
     print('Collecting Data...')
-    # connect to mysql database
-    conn = mysql.connector.connect(
-        host='localhost',
-        user='root',
-        password='root',
-        database='face_recognition'
-    )
-    cursor = conn.cursor()
 
     # Function to retrieve data from MySQL
     def retrieve_data():
@@ -285,10 +247,6 @@ def TrainAndManageClassifier(current_classifier_dir, backup_classifier_dir):
     # Retrieve data into a DataFrame
     df = retrieve_data()
     print('Data Succesfully Pulled From MySQL')
-
-    # Close the database connection
-    cursor.close()
-    conn.close()
 
     # Prepare data for training
     X = np.vstack(df['embedding'].values)
@@ -351,32 +309,7 @@ def TrainAndManageClassifier(current_classifier_dir, backup_classifier_dir):
         pickle.dump(SVMmodel, f)
     print(f"New classifier saved at: {current_classifier_path}")
 
-    # Here I would add code to send a signal to the real-time script to reload its model
-    # For example, I might set a flag or send a message over a network, etc.
-    # This part is left for later implementation.
 
-def insert_label_and_name(label_id, user_name, user_password):
-    # Connect to MySQL database
-    conn = mysql.connector.connect(
-        host='localhost',
-        user='root',
-        password='root',
-        database='face_recognition'
-    )
-    cursor = conn.cursor()
-
-    # Insert the LabelID and FaceName into the face_name table
-    cursor.execute(
-        "INSERT INTO face_name (LabelID, FaceName, FacePassword) VALUES (%s, %s, %s)",
-        (label_id, user_name, user_password)
-    )
-    conn.commit()
-
-    # Close the database connection
-    cursor.close()
-    conn.close()
-
-    print(f"LabelID {label_id} and UserName {user_name} have been successfully inserted into the face_name table.")
 
 def create_flag_file(flag_file):
     # Create the flag file to signal the real-time script
@@ -388,21 +321,8 @@ def create_flag_file(flag_file):
 #endregion 
 
 #region FindFolder
-import time
-def get_highest_index_folder_path(parent_directory):
-    """Get the folder path with the highest index inside the parent directory."""
-    folders = [f for f in os.listdir(parent_directory) if os.path.isdir(os.path.join(parent_directory, f))]
 
-    if not folders:
-        raise FileNotFoundError("No folders found in the specified directory.")
-
-    # Convert folder names to integers and find the highest index
-    folders.sort(key=int)
-    highest_index_folder = folders[-1]
-
-    return os.path.join(parent_directory, highest_index_folder)
-
-def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classifier_dir, backup_classifier_dir, user_name, flag_file, user_password):
+def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classifier_dir, backup_classifier_dir, user_name, flag_file, user_password, cursor):
     """Check for READY.txt file in the specified folder and create it if not present."""
     ready_file_path = os.path.join(folder_path, 'READY.txt')
     ImagesPath = os.path.join(folder_path, 'Unfiltered')
@@ -420,14 +340,14 @@ def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classi
             create_labels_csv(folder_path, labels_csv_path)
             time.sleep(1) # wait time to make sure labels are in csv
             print('Embedding Pictures and Storing in SQL Database...')
-            embed_and_store_images(folder_path)
+            embed_and_store_images(folder_path, cursor)
             if user_auth:
                 print('Entering LabelID in AUTH SQL Database...')
-                insert_auth_label(os.path.basename(folder_path))
+                insert_auth_label(os.path.basename(folder_path), cursor)
             print('Entering Label, UserName and password in face_name SQL Database')
-            insert_label_and_name(os.path.basename(folder_path), user_name, user_password)
+            insert_label_and_name(os.path.basename(folder_path), user_name, user_password, cursor)
             print('Training Classifier...')
-            TrainAndManageClassifier(current_classifier_dir=current_classifier_dir, backup_classifier_dir=backup_classifier_dir)
+            TrainAndManageClassifier(current_classifier_dir=current_classifier_dir, backup_classifier_dir=backup_classifier_dir, cursor=cursor)
             print('Creating Flag File... (./flag/)')
             create_flag_file(flag_file)
             print('Creating Ready.txt in Pictures Folder...')
@@ -453,21 +373,28 @@ def main(user_name, user_password, user_auth_choice):
     flag_file = "./flag/reload_flag.txt"
     upload_folder = './uploads'
 
-    # Check if the user name already exists
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='root',
+        database='face_recognition'
+    )
+    cursor = conn.cursor()
+
     try:
-        check_user_name_exists(user_name)
-    except Exception as ex:
-        raise ex
-    # user_auth_choice = input('Is the latest user authenticated to enter?(Y/N): ').upper()
-    user_auth = user_auth_choice == 'Y'
-    try:
+        check_user_name_exists(user_name, cursor)
+        user_auth = user_auth_choice == 'Y'
         new_folder_path = move_uploaded_images(upload_folder, dataset_dir)
         print(f"New folder created: {new_folder_path}")
-        highest_index_folder_path = get_highest_index_folder_path(dataset_dir)
-        print(f"Highest index folder: {highest_index_folder_path}")
-        check_and_preprocess(highest_index_folder_path, labels_csv, user_auth, current_classifier_dir, backup_classifier_dir, user_name, flag_file, user_password)
+        check_and_preprocess(new_folder_path, labels_csv, user_auth, current_classifier_dir, backup_classifier_dir, user_name, flag_file, user_password, cursor)
+        conn.commit()
     except Exception as e:
         print(f"An error occurred: {e}")
+        conn.rollback()
+        raise e
+    finally:
+        cursor.close()
+        conn.close()
 
 #endregion
 
