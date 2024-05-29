@@ -18,6 +18,14 @@ def get_label_id_by_name(name, cursor):
     else:
         return None
     
+def verify_user_password(name, password, cursor):
+    # Execute the SQL query to find the user by name and password
+    cursor.execute("SELECT LabelID FROM face_name WHERE FaceName = %s AND FacePassword = %s", (name, password))
+    result = cursor.fetchone()
+
+    if not result:
+        raise Exception(f"Incorrect password for user {name}")
+    
 def delete_row_face_name_by_label_id(label_id, cursor):
     # Execute the SQL query to delete the row by LabelID
     cursor.execute("DELETE FROM face_name WHERE LabelID = %s", (label_id,))
@@ -202,7 +210,7 @@ def create_flag_file(flag_file):
     with open(flag_file, 'w') as f:
         f.write("Reload classifier")
 
-def main(user_name):
+def main(user_name, user_password):
     # Connect to the MySQL database
     conn = mysql.connector.connect(
         host='localhost',
@@ -219,6 +227,11 @@ def main(user_name):
         label_id = get_label_id_by_name(user_name, cursor)
         if label_id is not None:
             print(f"LabelID ({user_name}) = {label_id}")
+            print('Verifying password...')
+            try:
+                verify_user_password(user_name, user_password, cursor)
+            except Exception as ex:
+                raise ex
             print('Deleting face_name...')
             delete_row_face_name_by_label_id(label_id, cursor)
             print('Deleting auth...')

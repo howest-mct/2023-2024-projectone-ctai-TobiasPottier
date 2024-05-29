@@ -24,6 +24,16 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def delete_uploaded_images(upload_folder):
+    for filename in os.listdir(upload_folder):
+        file_path = os.path.join(upload_folder, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+                print(f"Deleted file: {file_path}")
+        except Exception as e:
+            print(f"Failed to delete {file_path}. Reason: {e}")
+
 @app.route('/')
 def index():
     return "In progress, go to /upload"
@@ -31,12 +41,13 @@ def index():
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_files():
     if request.method == 'POST':
-        if 'files[]' not in request.files or 'user_name' not in request.form:
-            flash('No file part or user name provided')
+        if 'files[]' not in request.files or 'user_name' not in request.form or 'password' not in request.form:
+            flash('No file part, user name, or password provided')
             return redirect(request.url)
         
         files = request.files.getlist('files[]')
         user_name = request.form['user_name']
+        user_password = request.form['password']
         
         if len(files) != 5:
             flash('You must upload exactly 5 images.')
@@ -50,12 +61,15 @@ def upload_files():
                 flash('Allowed image types are - jpg, jpeg')
                 return redirect(request.url)
 
-        # Run the script to store the images
-        store_images(user_name)
-        time.sleep(.2)  # to make sure all images are stored successfully
-        ImagePreprocessing.main(user_name, 'Y')  # 'Y' = User is authenticated to enter
+        try:
+            # Script to store, augment, annotate, embed, clasify, retrain models and make flag file
+            ImagePreprocessing.main(user_name, user_password, 'Y')  # 'Y' = User is authenticated to enter
+            flash('Images successfully uploaded and processed!')
+        except Exception as e:
+            time.sleep(.2) # to makes sure all images are uploaded first before deleting them
+            delete_uploaded_images(app.config['UPLOAD_FOLDER'])
+            flash(f'Error: {e}')
 
-        flash('Images successfully uploaded and processed!')
         return redirect(url_for('upload_files'))
 
     return render_template('upload.html')
@@ -64,12 +78,13 @@ def upload_files():
 def delete_user():
     if request.method == 'POST':
         user_name = request.form['user_name']
+        user_password = request.form['password']
         if not user_name:
             flash('User name is required.')
             return redirect(request.url)
 
         try:
-            DeleteUser.main(user_name)
+            DeleteUser.main(user_name, user_password)
             flash('Delete Successful!')
         except Exception as e:
             flash(f'Error: {e}')
@@ -77,32 +92,6 @@ def delete_user():
         return redirect(url_for('delete_user'))
 
     return render_template('delete.html')
-
-def store_images(user_name):
-    # Determine the next folder name
-    existing_folders = [f for f in os.listdir(DATASET_DIR) if os.path.isdir(os.path.join(DATASET_DIR, f))]
-
-    if existing_folders:
-        max_folder_num = max([int(f) for f in existing_folders])
-        new_folder_num = max_folder_num + 1
-    else:
-        new_folder_num = 1
-
-    new_folder_path = os.path.join(DATASET_DIR, str(new_folder_num))
-    unfiltered_folder_path = os.path.join(new_folder_path, 'Unfiltered')
-
-    # Create new folders
-    os.makedirs(unfiltered_folder_path)
-
-    # Move uploaded images to the new folder
-    for filename in os.listdir(app.config['UPLOAD_FOLDER']):
-        src_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        dest_path = os.path.join(unfiltered_folder_path, filename)
-        os.rename(src_path, dest_path)
-        print(f"Stored {filename} in {unfiltered_folder_path}")
-
-    # You can use the user_name variable here if needed
-    print(f"Images stored for user: {user_name}")
 
 
 if __name__ == "__main__":

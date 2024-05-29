@@ -19,8 +19,53 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 #endregion
 #region Preprocessing
 print('Importing YOLO model...')
-
 model = YOLO('./detectionModel3.pt')
+
+def check_user_name_exists(user_name):
+    # Connect to MySQL database
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='root',
+        database='face_recognition'
+    )
+    cursor = conn.cursor()
+
+    # Check if the user name exists in the face_name table
+    cursor.execute("SELECT 1 FROM face_name WHERE FaceName = %s", (user_name,))
+    result = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if result:
+        raise Exception(f"User name {user_name} already exists in the database.")
+
+def move_uploaded_images(upload_folder, dataset_dir):
+    # Determine the next folder name
+    existing_folders = [f for f in os.listdir(dataset_dir) if os.path.isdir(os.path.join(dataset_dir, f))]
+
+    if existing_folders:
+        max_folder_num = max([int(f) for f in existing_folders])
+        new_folder_num = max_folder_num + 1
+    else:
+        new_folder_num = 1
+
+    new_folder_path = os.path.join(dataset_dir, str(new_folder_num))
+    unfiltered_folder_path = os.path.join(new_folder_path, 'Unfiltered')
+
+    # Create new folders
+    os.makedirs(unfiltered_folder_path)
+
+    # Move uploaded images to the new folder
+    for filename in os.listdir(upload_folder):
+        src_path = os.path.join(upload_folder, filename)
+        dest_path = os.path.join(unfiltered_folder_path, filename)
+        os.rename(src_path, dest_path)
+        print(f"Stored {filename} in {unfiltered_folder_path}")
+
+    return new_folder_path
+
 def detect_and_crop_faces(input_folder, output_folder):
     # Create the output folder if it doesn't exist
     if not os.path.exists(output_folder):
@@ -310,7 +355,7 @@ def TrainAndManageClassifier(current_classifier_dir, backup_classifier_dir):
     # For example, I might set a flag or send a message over a network, etc.
     # This part is left for later implementation.
 
-def insert_label_and_name(label_id, user_name):
+def insert_label_and_name(label_id, user_name, user_password):
     # Connect to MySQL database
     conn = mysql.connector.connect(
         host='localhost',
@@ -322,8 +367,8 @@ def insert_label_and_name(label_id, user_name):
 
     # Insert the LabelID and FaceName into the face_name table
     cursor.execute(
-        "INSERT INTO face_name (LabelID, FaceName) VALUES (%s, %s)",
-        (label_id, user_name)
+        "INSERT INTO face_name (LabelID, FaceName, FacePassword) VALUES (%s, %s, %s)",
+        (label_id, user_name, user_password)
     )
     conn.commit()
 
@@ -337,6 +382,7 @@ def create_flag_file(flag_file):
     # Create the flag file to signal the real-time script
     with open(flag_file, 'w') as f:
         f.write("Reload classifier")
+
 
 
 #endregion 
@@ -356,13 +402,13 @@ def get_highest_index_folder_path(parent_directory):
 
     return os.path.join(parent_directory, highest_index_folder)
 
-def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classifier_dir, backup_classifier_dir, user_name, flag_file):
+def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classifier_dir, backup_classifier_dir, user_name, flag_file, user_password):
     """Check for READY.txt file in the specified folder and create it if not present."""
     ready_file_path = os.path.join(folder_path, 'READY.txt')
     ImagesPath = os.path.join(folder_path, 'Unfiltered')
 
     if not os.path.exists(ready_file_path):
-        print("READY.txt does not exist in the folder.")
+        print("READY.txt does not exist in the folder. OK")
         # Perform any other actions needed if READY.txt does not exist
         if os.path.exists(ImagesPath):
             print('Cropping Pictures... (YOLOv8n)')
@@ -379,7 +425,7 @@ def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classi
                 print('Entering LabelID in AUTH SQL Database...')
                 insert_auth_label(os.path.basename(folder_path))
             print('Entering Label and UserName in face_name SQL Database')
-            insert_label_and_name(os.path.basename(folder_path), user_name)
+            insert_label_and_name(os.path.basename(folder_path), user_name, user_password)
             print('Training Classifier...')
             TrainAndManageClassifier(current_classifier_dir=current_classifier_dir, backup_classifier_dir=backup_classifier_dir)
             print('Creating Flag File... (./flag/)')
@@ -399,20 +445,27 @@ def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classi
 
 
 
-def main(user_name, user_auth_choice):
+def main(user_name, user_password, user_auth_choice):
     dataset_dir = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset"
     labels_csv = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubLabels/labels.csv"
     current_classifier_dir = "./"
     backup_classifier_dir = "./BackupModels"
     flag_file = "./flag/reload_flag.txt"
-    # user_auth_choice = input('Is the latest user authenticated to enter?(Y/N): ').upper()
-    user_auth = False
-    if user_auth_choice == 'Y':
-        user_auth = True
+    upload_folder = './uploads'
+
+    # Check if the user name already exists
     try:
+        check_user_name_exists(user_name)
+    except Exception as ex:
+        raise ex
+    # user_auth_choice = input('Is the latest user authenticated to enter?(Y/N): ').upper()
+    user_auth = user_auth_choice == 'Y'
+    try:
+        new_folder_path = move_uploaded_images(upload_folder, dataset_dir)
+        print(f"New folder created: {new_folder_path}")
         highest_index_folder_path = get_highest_index_folder_path(dataset_dir)
         print(f"Highest index folder: {highest_index_folder_path}")
-        check_and_preprocess(highest_index_folder_path, labels_csv, user_auth, current_classifier_dir, backup_classifier_dir, user_name, flag_file)
+        check_and_preprocess(highest_index_folder_path, labels_csv, user_auth, current_classifier_dir, backup_classifier_dir, user_name, flag_file, user_password)
     except Exception as e:
         print(f"An error occurred: {e}")
 
