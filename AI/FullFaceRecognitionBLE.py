@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 from keras_facenet import FaceNet
+from scipy.spatial.distance import euclidean
 #endregion
 
 
@@ -21,14 +22,14 @@ rx_q = queue.Queue()
 BLE_DEVICE_MAC = "D8:3A:DD:D9:73:57"
 connection_event = Event()
 
-def init_ble_thread():
-    # Creating a new thread for running a function 'run' with specified arguments.
-    ble_client_thread = Thread(target=BLE_client.run, args=(
-        rx_q, tx_q, None, BLE_DEVICE_MAC, connection_event), daemon=True)
-    # Starting the thread execution.
-    ble_client_thread.start()
-init_ble_thread()
-connection_event.wait()
+# def init_ble_thread():
+#     # Creating a new thread for running a function 'run' with specified arguments.
+#     ble_client_thread = Thread(target=BLE_client.run, args=(
+#         rx_q, tx_q, None, BLE_DEVICE_MAC, connection_event), daemon=True)
+#     # Starting the thread execution.
+#     ble_client_thread.start()
+# init_ble_thread()
+# connection_event.wait()
 print('BLE CONNECTION ESTABLISHED')
 #endregion
 
@@ -37,7 +38,7 @@ print('BLE CONNECTION ESTABLISHED')
 FLAG_FILE_PATH = './flag/reload_flag.txt'
 CURRENT_CLASSIFIER_PATH = 'SVM_classifier.pkl'
 def reload_resources():
-    global classifier, label_mapping, auth_labels
+    global classifier, label_mapping, auth_labels, known_embeddings
 
     # Load the trained classifier
     with open(CURRENT_CLASSIFIER_PATH, 'rb') as f:
@@ -61,9 +62,21 @@ def reload_resources():
         cursor.execute("SELECT LabelID FROM auth")
         results = cursor.fetchall()
         return [label[0] for label in results]
+    
+    def retrieve_known_embeddings():
+        cursor.execute("SELECT embedding, label FROM face_data")
+        results = cursor.fetchall()
+        embeddings_dict = {}
+        for (binary_embedding, label) in results:
+            embedding = pickle.loads(binary_embedding)
+            if label not in embeddings_dict:
+                embeddings_dict[label] = []
+            embeddings_dict[label].append(embedding)
+        return embeddings_dict
 
     label_mapping = retrieve_label_mapping()
     auth_labels = retrieve_auth_labels()
+    known_embeddings = retrieve_known_embeddings()
     print(f'Labels: {label_mapping}')
     print(f'Auth: {auth_labels}')
     cursor.close()
@@ -155,11 +168,17 @@ while True:
             confidence = probabilities[0][max_index]
             predicted_label = max_index
 
+            # Compute the Euclidean distance to known faces
+            known_embeddings_for_label = known_embeddings[predicted_label]
+            distances = [euclidean(embeddings[0], emb) for emb in known_embeddings_for_label]
+            min_distance = min(distances)
+
             # Only display the label if confidence is above a certain threshold
             confidence_threshold = 0.80
-            if confidence > confidence_threshold:
+            euclidean_distance_treshold = 0.70
+            if confidence > confidence_threshold and min_distance < euclidean_distance_treshold:
                 # Convert the predicted label to a string
-                predicted_label_str = f"{predicted_label} (={label_mapping[predicted_label]}) | ({confidence:.2f})"
+                predicted_label_str = f"{predicted_label} (={label_mapping[predicted_label]}) | ({confidence:.2f})  DIST {min_distance:.2f}"
 
                 # Draw bounding box and label on the frame
                 cv2.putText(frame, f'{predicted_label_str}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
@@ -174,7 +193,7 @@ while True:
             else:
                 # Draw bounding box and label on the frame
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                cv2.putText(frame, f'Non-User', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+                cv2.putText(frame, f'Non-User DIST {min_distance:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
                 current_state = 'NUD'
 
             box_states.append(current_state)
