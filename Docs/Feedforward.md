@@ -48,17 +48,25 @@ This is the feedback on my questions.
 
 - Feedback 2: keep the database wherever you keep your models. If your models are running on your PC, then keep your database there. If they are on the raspi, then set the database there.
 
-## Conversation 2 (Date: xx/xx/2024)
+## Conversation 2 (Date: 29/05/2024)
 
-Lecturer:
+Lecturer: Tijn Veraghtert
 
 Questions for this conversation:
 
-- Question 1: V
+- Question 1: Can I use the Raspi Freenove Project Kit in my final product?
+
+- Question 2: Can I buy plywood in howest?
+
+- Question 3: How should i make it so the door can open/close. A metal cylinder at the side of the door?
 
 This is the feedback on my questions.
 
-- Feedback 1: G
+- Feedback 1: Yes
+
+- Feedback 2: yes at IDC
+
+- Feedback 3: You can use tape on the door, or make a design so that the door has 2 parts on top and down that fit in the the wall top and bottom so it can turn in its position. The walls can stay in the ground with the same mechanism by cutting out certain parts out the ground and fitting them with the wall.
 
 ## Conversation 3 (Date: xx/xx/2024)
 
