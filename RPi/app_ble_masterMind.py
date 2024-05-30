@@ -60,7 +60,7 @@ def main():
     i = 0
     rx_q = queue.Queue()
     tx_q = queue.Queue()
-    device_name = "TPBias-pi-gatt-uart" # TODO: replace with your own (unique) device name
+    device_name = "TPBias-pi-gatt-uart" # your own (unique) device name
     threading.Thread(target=ble_gatt_uart_loop, args=(rx_q, tx_q, device_name), daemon=True).start()
     lcd.send_string("BLE Server Ready", lcd.LCD_LINE_1)
 
