@@ -52,7 +52,7 @@ CURRENT_CLASSIFIER_PATH = 'SVM_classifier.pkl'
 def reload_resources():
     global classifier, label_mapping, auth_labels, known_embeddings, sequential_list_labels, reloading_stop
     reloading_stop = True
-    time.sleep(.1) # wait for main loop to stop
+    time.sleep(.2) # wait for main loop to stop
     # Load the trained classifier
     with open(CURRENT_CLASSIFIER_PATH, 'rb') as f:
         classifier = pickle.load(f)

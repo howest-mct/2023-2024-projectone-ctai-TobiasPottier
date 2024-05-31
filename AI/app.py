@@ -7,8 +7,6 @@ print('Importing ImagePreprocessing.py...')
 import ImagePreprocessing
 print('Importing DeleteUser.py...')
 import DeleteUser
-print('Importing TakeCameraPictures.py')
-import TakeCameraPictures
 print('Importing FullFaceRegnition.py')
 import FullFaceRecognitionBLE
 
@@ -22,7 +20,6 @@ face_det_event = threading.Event()
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
-app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB upload limit
 
 # Ensure the upload folder exists
@@ -98,7 +95,9 @@ def camera():
                     picture_index = 0
                     return redirect(url_for('upload'))
                 except Exception as ex:
+                    delete_uploaded_images('./captures')
                     flash(f'error: {ex}')
+                    return redirect(url_for('upload'))
             else:
                 flash(f'Photo taken {picture_index}')
         else:

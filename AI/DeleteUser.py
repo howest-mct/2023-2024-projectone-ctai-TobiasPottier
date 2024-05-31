@@ -38,17 +38,6 @@ def delete_row_face_data_by_label_id(label_id, cursor):
     # Execute the SQL query to delete the row by LabelID
     cursor.execute("DELETE FROM face_data WHERE Label = %s", (label_id,))
 
-def delete_labels_csv_rows(csv_path, label_id):
-    # Load the CSV file into a pandas DataFrame
-    df = pd.read_csv(csv_path)
-    
-    # Filter the DataFrame to remove rows with the given label_id
-    df_filtered = df[df['label'] != label_id]
-    
-    # Save the updated DataFrame back to the CSV file
-    df_filtered.to_csv(csv_path, index=False)
-    print(f"Rows with label {label_id} have been deleted from the CSV file.")
-
 def TrainAndReplaceModel(current_classifier_dir, backup_classifier_dir):
     # Ensure backup directory exists
     print('Backing Up Current Classifier...')
@@ -227,7 +216,6 @@ def main(user_name, user_password):
         database='face_recognition'
     )
     cursor = conn.cursor()
-    labels_csv_dir = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubLabels/labels.csv"
     users_images_dataset_dir = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset"
     flag_file = "./flag/reload_flag.txt"
     try:
@@ -246,8 +234,6 @@ def main(user_name, user_password):
             delete_row_auth_by_label_id(label_id, cursor)
             print('Deleting face_data...')
             delete_row_face_data_by_label_id(label_id, cursor)
-            print('Deleting annotations in labels.csv...')
-            delete_labels_csv_rows(labels_csv_dir, label_id)
             conn.commit()  # Commit all changes once at the end
             print('Deleting Images...')
             delete_files_in_label_folder(users_images_dataset_dir, label_id)
