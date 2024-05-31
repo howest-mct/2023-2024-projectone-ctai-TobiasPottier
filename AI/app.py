@@ -16,6 +16,7 @@ picture_index = 0
 user_name = None
 user_password = None
 take_picture_event = threading.Event()
+show_face_event = threading.Event()
 stop_event = threading.Event()
 face_det_event = threading.Event()
 
@@ -45,12 +46,21 @@ def delete_uploaded_images(upload_folder):
         except Exception as e:
             print(f"Failed to delete {file_path}. Reason: {e}")
 
-@app.route('/')
-def index():
-    return '''
-        <h1>In progress</h1>
-        <p>Go to <a href="/upload">Upload</a> or <a href="/delete">Delete</a> or <a href="/recognition">Recognition</a></p>
-    '''
+# @app.route('/')
+# def index():
+#     return '''
+#         <h1>In progress</h1>
+#         <p>Go to <a href="/upload">Upload</a> or <a href="/delete">Delete</a> or <a href="/recognition">Recognition</a></p>
+#     '''
+
+
+@app.route('/', methods=['GET'])
+def recognition():
+    flash('Opening Recognition Camera...')
+    threading.Thread(target=FullFaceRecognitionBLE.main, args=(take_picture_event, show_face_event, face_det_event, stop_event)).start()
+    return render_template('recognition.html')
+
+
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     global picture_index, take_picture_event, user_name, user_password
@@ -61,15 +71,8 @@ def upload():
         if not user_name or not user_password:
             flash('User name and password are required.')
             return redirect(request.url)
-
-        picture_index = 0
-        camera_opened_event = threading.Event()
         try:
-            threading.Thread(target=TakeCameraPictures.main, args=(camera_opened_event, take_picture_event, stop_event, face_det_event)).start()
-            # Wait for the event to be set
-            camera_opened_event.wait()
-            time.sleep(2)
-            # Redirect to the camera page
+            show_face_event.set()
             return redirect(url_for('camera'))
         except Exception as e:
             flash(f'Error: {e}')
@@ -80,17 +83,20 @@ def upload():
 
 @app.route('/camera', methods=['GET', 'POST'])
 def camera():
-    global picture_index, take_picture_event, stop_event, user_name, user_password
+    global picture_index, take_picture_event, user_name, user_password
     if request.method == 'POST':
         if face_det_event.is_set():
             picture_index += 1
             take_picture_event.set()
             if picture_index == 5:
-                stop_event.set()
+                take_picture_event.clear()
                 try:
                     time.sleep(.5)  # to makes sure all images are in /captures
+                    show_face_event.clear()
                     ImagePreprocessing.main(user_name, user_password)
-                    return redirect(url_for('recognition'))
+                    flash('Succesfully Processed and Uploaded User!')
+                    picture_index = 0
+                    return redirect(url_for('upload'))
                 except Exception as ex:
                     flash(f'error: {ex}')
             else:
@@ -101,11 +107,6 @@ def camera():
 
     return render_template('camera.html')
 
-@app.route('/recognition', methods=['GET'])
-def recognition():
-    flash('Opening Recognition Camera...')
-    threading.Thread(target=FullFaceRecognitionBLE.main).start()
-    return render_template('recognition.html')
 
 @app.route('/delete', methods=['GET', 'POST'])
 def delete_user():

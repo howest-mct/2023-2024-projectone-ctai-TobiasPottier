@@ -129,7 +129,7 @@ embedder = FaceNet()
 
 print('Models Succesfully Loaded!')
 
-def main():
+def main(take_picture_event, show_face_event, face_det_event, stop_event):
     print('Opening Camera...')
     # Open a connection to the webcam
     cap = cv2.VideoCapture(0)
@@ -149,9 +149,9 @@ def main():
 
     #last user detected state
     last_state = None
+    captures_dir = './captures'
     print('Program Ready!')
-
-    while True:
+    while not stop_event.is_set():
         # Capture frame-by-frame
         ret, frame = cap.read()
 
@@ -163,6 +163,7 @@ def main():
             # Make predictions with YOLO model
             results = yolo_model(frame)
 
+            face_detected = False
             current_state = 'NUD'  # Default state is No User Detected
 
             # Process the results and show only the detected faces
@@ -175,50 +176,77 @@ def main():
 
                     # Cut out the face from the frame
                     face = frame[y1:y2, x1:x2]
+                    face_detected = True
 
-                    # Resize the face to 160x160 as required by FaceNet
-                    face = cv2.resize(face, (160, 160))
-                    face = face.astype('float32')
-                    face = np.expand_dims(face, axis=0)
-
-                    # Generate embeddings for the face
-                    embeddings = embedder.embeddings(face)
-
-                    probabilities = classifier.predict_proba(embeddings)  # this gives you each probability per class
-                    max_index = np.argmax(probabilities)  # max index = label of the person who has the highest probability
-                    confidence = probabilities[0][max_index]
-                    predicted_label = sequential_list_labels[max_index]
-
-                    # Compute the Euclidean distance to known faces
-                    known_embeddings_for_label = known_embeddings[predicted_label]
-                    distances = [euclidean(embeddings[0], emb) for emb in known_embeddings_for_label]
-                    min_distance = min(distances)
-
-                    # Only display the label if confidence is above a certain threshold
-                    confidence_threshold = 0.50
-                    euclidean_distance_treshold = 0.70
-                    if confidence > confidence_threshold and min_distance < euclidean_distance_treshold:
-                        # Convert the predicted label to a string
-                        predicted_label_str = f"{predicted_label} (={label_mapping[predicted_label]}) | ({confidence:.2f})  DIST {min_distance:.2f}"
-
-                        # Draw bounding box and label on the frame
-                        cv2.putText(frame, f'{predicted_label_str}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
-                    
-                        if predicted_label in auth_labels:
-                            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                            current_state = 'UD'
-                        else:
-                            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                            current_state = 'NUD'
-                        
+                    if show_face_event.is_set():
+                        cv2.imshow('Webcam Face Detection and Recognition', face)
                     else:
-                        # Draw bounding box and label on the frame
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                        cv2.putText(frame, f'Non-User | ({confidence:.2f}) DIST {min_distance:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
-                        current_state = 'NUD'
+                        # Resize the face to 160x160 as required by FaceNet
+                        face = cv2.resize(face, (160, 160))
+                        face = face.astype('float32')
+                        face = np.expand_dims(face, axis=0)
 
-                    box_states.append(current_state)
+                        # Generate embeddings for the face
+                        embeddings = embedder.embeddings(face)
+
+                        probabilities = classifier.predict_proba(embeddings)  # this gives you each probability per class
+                        max_index = np.argmax(probabilities)  # max index = label of the person who has the highest probability
+                        confidence = probabilities[0][max_index]
+                        predicted_label = sequential_list_labels[max_index]
+
+                        # Compute the Euclidean distance to known faces
+                        known_embeddings_for_label = known_embeddings[predicted_label]
+                        distances = [euclidean(embeddings[0], emb) for emb in known_embeddings_for_label]
+                        min_distance = min(distances)
+
+                        # Only display the label if confidence is above a certain threshold
+                        confidence_threshold = 0.50
+                        euclidean_distance_treshold = 0.70
+                        if confidence > confidence_threshold and min_distance < euclidean_distance_treshold:
+                            # Convert the predicted label to a string
+                            predicted_label_str = f"{predicted_label} (={label_mapping[predicted_label]}) | ({confidence:.2f})  DIST {min_distance:.2f}"
+
+                            # Draw bounding box and label on the frame
+                            cv2.putText(frame, f'{predicted_label_str}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+                        
+                            if predicted_label in auth_labels:
+                                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                                current_state = 'UD'
+                            else:
+                                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                                current_state = 'NUD'
+                            
+                        else:
+                            # Draw bounding box and label on the frame
+                            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                            cv2.putText(frame, f'Non-User | ({confidence:.2f}) DIST {min_distance:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+                            current_state = 'NUD'
+
+                        box_states.append(current_state)
+
                 current_state = 'UD' if 'UD' in box_states else 'NUD'
+
+            # Check if the take_picture_event is set
+            if take_picture_event.is_set() and show_face_event.is_set():
+                # Save the current frame to /captures directory
+                os.makedirs(captures_dir, exist_ok=True)
+                existing_pictures = [f for f in os.listdir('./captures') if f.startswith("Fpic")]
+                if existing_pictures:
+                    indices = [int(f.split('_')[-1].split('.')[0]) for f in existing_pictures]
+                    next_index = max(indices) + 1
+                else:
+                    next_index = 1
+                capture_path = os.path.join(captures_dir, f'Fpic_{next_index}.jpg')
+                cv2.imwrite(capture_path, face)
+                print(f"FacePicture saved to {capture_path}")
+
+                # Clear the take_picture_event
+                take_picture_event.clear()
+
+            if face_detected:
+                face_det_event.set()
+            else:
+                face_det_event.clear()
 
             # Send the current state if it has changed from the last state
             if current_state != last_state:
@@ -228,16 +256,25 @@ def main():
 
 
         # Display the resulting frame
-        cv2.imshow('Webcam Face Detection and Recognition', frame)
+        if not show_face_event.is_set():
+            cv2.imshow('Webcam Face Detection and Recognition', frame)
+
         
         # Break the loop if the user presses 'q'
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
     # Release the webcam and close windows
+    current_state = 'NUD'
+    clear_queue(tx_q)
+    tx_q.put(current_state)
+    stop_event.clear()
     cap.release()
     cv2.destroyAllWindows()
-    #endregion
+
+
 
 if __name__ == "__main__":
     print('Script called from __main__, no action taken')
+
+#endregion
