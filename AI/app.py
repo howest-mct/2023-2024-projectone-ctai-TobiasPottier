@@ -1,11 +1,23 @@
-from flask import Flask, request, render_template, redirect, url_for, flash
+from flask import Flask, request, render_template, redirect, url_for, flash, jsonify
 import os
 from werkzeug.utils import secure_filename
 import time
+import threading
 print('Importing ImagePreprocessing.py...')
 import ImagePreprocessing
 print('Importing DeleteUser.py...')
 import DeleteUser
+print('Importing TakeCameraPictures.py')
+import TakeCameraPictures
+print('Importing FullFaceRegnition.py')
+import FullFaceRecognitionBLE
+
+picture_index = 0
+user_name = None
+user_password = None
+take_picture_event = threading.Event()
+stop_event = threading.Event()
+face_det_event = threading.Event()
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -13,7 +25,6 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB upload limit
 
 # Ensure the upload folder exists
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg'}
@@ -38,44 +49,63 @@ def delete_uploaded_images(upload_folder):
 def index():
     return '''
         <h1>In progress</h1>
-        <p>Go to <a href="/upload">Upload</a> or <a href="/delete">Delete</a></p>
+        <p>Go to <a href="/upload">Upload</a> or <a href="/delete">Delete</a> or <a href="/recognition">Recognition</a></p>
     '''
-
 @app.route('/upload', methods=['GET', 'POST'])
-def upload_files():
+def upload():
+    global picture_index, take_picture_event, user_name, user_password
     if request.method == 'POST':
-        if 'files[]' not in request.files or 'user_name' not in request.form or 'password' not in request.form:
-            flash('No file part, user name, or password provided')
-            return redirect(request.url)
-        
-        files = request.files.getlist('files[]')
         user_name = request.form['user_name']
         user_password = request.form['password']
-        
-        if len(files) != 5:
-            flash('You must upload exactly 5 images.')
+
+        if not user_name or not user_password:
+            flash('User name and password are required.')
             return redirect(request.url)
 
-        for file in files:
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            else:
-                flash('Allowed image types are - jpg, jpeg')
-                return redirect(request.url)
-
+        picture_index = 0
+        camera_opened_event = threading.Event()
         try:
-            # Script to store, augment, annotate, embed, clasify, retrain models and make flag file
-            ImagePreprocessing.main(user_name, user_password, 'Y')  # 'Y' = User is authenticated to enter
-            flash('Images successfully uploaded and processed!')
+            threading.Thread(target=TakeCameraPictures.main, args=(camera_opened_event, take_picture_event, stop_event, face_det_event)).start()
+            # Wait for the event to be set
+            camera_opened_event.wait()
+            time.sleep(2)
+            # Redirect to the camera page
+            return redirect(url_for('camera'))
         except Exception as e:
-            time.sleep(.2) # to makes sure all images are uploaded first before deleting them
-            delete_uploaded_images(app.config['UPLOAD_FOLDER'])
             flash(f'Error: {e}')
 
-        return redirect(url_for('upload_files'))
+        return redirect(url_for('upload'))
 
     return render_template('upload.html')
+
+@app.route('/camera', methods=['GET', 'POST'])
+def camera():
+    global picture_index, take_picture_event, stop_event, user_name, user_password
+    if request.method == 'POST':
+        if face_det_event.is_set():
+            picture_index += 1
+            take_picture_event.set()
+            if picture_index == 5:
+                stop_event.set()
+                try:
+                    time.sleep(.5)  # to makes sure all images are in /captures
+                    ImagePreprocessing.main(user_name, user_password)
+                    return redirect(url_for('recognition'))
+                except Exception as ex:
+                    flash(f'error: {ex}')
+            else:
+                flash(f'Photo taken {picture_index}')
+        else:
+            flash('No Face Detected In Frame, Please Try Again')
+        return redirect(url_for('camera'))
+
+    return render_template('camera.html')
+
+@app.route('/recognition', methods=['GET'])
+def recognition():
+    flash('Opening Recognition Camera...')
+    threading.Thread(target=FullFaceRecognitionBLE.main).start()
+    return render_template('recognition.html')
 
 @app.route('/delete', methods=['GET', 'POST'])
 def delete_user():
@@ -98,4 +128,4 @@ def delete_user():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=1234)
+    app.run(debug=False, port=1234)

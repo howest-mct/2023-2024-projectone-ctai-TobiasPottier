@@ -42,17 +42,16 @@ def move_uploaded_images(upload_folder, dataset_dir):
         new_folder_num = 1
 
     new_folder_path = os.path.join(dataset_dir, str(new_folder_num))
-    unfiltered_folder_path = os.path.join(new_folder_path, 'Unfiltered')
 
     # Create new folders
-    os.makedirs(unfiltered_folder_path)
+    os.makedirs(new_folder_path)
 
     # Move uploaded images to the new folder
     for filename in os.listdir(upload_folder):
         src_path = os.path.join(upload_folder, filename)
-        dest_path = os.path.join(unfiltered_folder_path, filename)
+        dest_path = os.path.join(new_folder_path, filename)
         os.rename(src_path, dest_path)
-        print(f"Stored {filename} in {unfiltered_folder_path}")
+        print(f"Stored {filename} in {new_folder_path}")
 
     return new_folder_path
 
@@ -126,34 +125,10 @@ def augment_images_in_directory(image_dir):
     augmenters = [brightness_augmenter, rotation_augmenter, noise_augmenter, flip_augmenter, black_box_augmenter]
 
     # Get all image paths
-    image_paths = glob(os.path.join(image_dir, "*.jpg")) + glob(os.path.join(image_dir, "*.png")) + glob(os.path.join(image_dir, "*.jpeg"))
+    image_paths = glob(os.path.join(image_dir, "*.jpg")) + glob(os.path.join(image_dir, "*.jpeg"))
 
     # Augment images and save them
     augment_images(image_paths, augmenters, image_dir)
-
-def create_labels_csv(input_dir, output_csv):
-    # List to hold the image paths and labels
-    data = []
-
-    # Traverse through the input directory
-    for image_name in os.listdir(input_dir):
-        if image_name.lower().endswith(('.png', '.jpg', '.jpeg')):
-            image_path = os.path.join(input_dir, image_name)
-            folder_name = os.path.basename(input_dir)
-            data.append([image_path, folder_name])
-    
-    # Create a DataFrame
-    df = pd.DataFrame(data, columns=['image_path', 'label'])
-    
-    # Check if the output CSV file exists
-    if os.path.exists(output_csv):
-        # Append without writing the header
-        df.to_csv(output_csv, mode='a', header=False, index=False)
-    else:
-        # Write the file with the header
-        df.to_csv(output_csv, mode='w', header=True, index=False)
-    
-    print(f"Labels CSV appended/created at: {output_csv}")
 
 
 def embed_and_store_images(image_dir, cursor):
@@ -179,7 +154,7 @@ def embed_and_store_images(image_dir, cursor):
 
     # Traverse through the directory and embed images
     for image_name in os.listdir(image_dir):
-        if image_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+        if image_name.lower().endswith(('.jpg', '.jpeg')):
             image_path = os.path.join(image_dir, image_name)
             label = os.path.basename(image_dir)
             embedding = preprocess_and_embed(image_path)
@@ -322,56 +297,43 @@ def create_flag_file(flag_file):
 
 #region FindFolder
 
-def check_and_preprocess(folder_path, labels_csv_path, user_auth, current_classifier_dir, backup_classifier_dir, user_name, flag_file, user_password, cursor):
+def check_and_preprocess(folder_path, current_classifier_dir, backup_classifier_dir, user_name, flag_file, user_password, cursor):
     """Check for READY.txt file in the specified folder and create it if not present."""
     ready_file_path = os.path.join(folder_path, 'READY.txt')
-    ImagesPath = os.path.join(folder_path, 'Unfiltered')
 
     if not os.path.exists(ready_file_path):
         print("READY.txt does not exist in the folder. OK")
-        # Perform any other actions needed if READY.txt does not exist
-        if os.path.exists(ImagesPath):
-            print('Cropping Pictures... (YOLOv8n)')
-            detect_and_crop_faces(input_folder=ImagesPath, output_folder=folder_path)
-            print('Augmenting Pictures...')
-            augment_images_in_directory(folder_path)
-            time.sleep(1) # wait time to make sure all images are made before labelling
-            print('Creating Labels in CSV...')
-            create_labels_csv(folder_path, labels_csv_path)
-            time.sleep(1) # wait time to make sure labels are in csv
-            print('Embedding Pictures and Storing in SQL Database...')
-            embed_and_store_images(folder_path, cursor)
-            if user_auth:
-                print('Entering LabelID in AUTH SQL Database...')
-                insert_auth_label(os.path.basename(folder_path), cursor)
-            print('Entering Label, UserName and password in face_name SQL Database')
-            insert_label_and_name(os.path.basename(folder_path), user_name, user_password, cursor)
-            print('Training Classifier...')
-            TrainAndManageClassifier(current_classifier_dir=current_classifier_dir, backup_classifier_dir=backup_classifier_dir, cursor=cursor)
-            print('Creating Flag File... (./flag/)')
-            create_flag_file(flag_file)
-            print('Creating Ready.txt in Pictures Folder...')
-            with open(ready_file_path, 'w') as f:
-                f.write("This is the READY.txt file.")
-            print("READY.txt file has been created.")
-            print('ALL PROCESSES COMPLETE!')
-            return
-        else:
-            print('ERROR: READY.txt is not there, but Unfiltered folder is also not present')
-            return
+        print('Augmenting Pictures...')
+        augment_images_in_directory(folder_path)
+        time.sleep(1) # wait time to make sure all images are made before embedding
+        print('Embedding Pictures and Storing in SQL Database...')
+        embed_and_store_images(folder_path, cursor)
+        print('Entering LabelID in AUTH SQL Database...')
+        insert_auth_label(os.path.basename(folder_path), cursor)
+        print('Entering Label, UserName and password in face_name SQL Database')
+        insert_label_and_name(os.path.basename(folder_path), user_name, user_password, cursor)
+        print('Training Classifier...')
+        TrainAndManageClassifier(current_classifier_dir=current_classifier_dir, backup_classifier_dir=backup_classifier_dir, cursor=cursor)
+        print('Creating Flag File... (./flag/)')
+        create_flag_file(flag_file)
+        print('Creating Ready.txt in Pictures Folder...')
+        with open(ready_file_path, 'w') as f:
+            f.write("This is the READY.txt file.")
+        print("READY.txt file has been created.")
+        print('ALL PROCESSES COMPLETE!')
+        return
     else:
         print("READY.txt already exists in the folder.")
         return
 
 
 
-def main(user_name, user_password, user_auth_choice):
+def main(user_name, user_password):
     dataset_dir = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset"
-    labels_csv = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubLabels/labels.csv"
     current_classifier_dir = "./"
     backup_classifier_dir = "./BackupModels"
     flag_file = "./flag/reload_flag.txt"
-    upload_folder = './uploads'
+    upload_folder = './captures'
 
     conn = mysql.connector.connect(
         host='localhost',
@@ -383,10 +345,9 @@ def main(user_name, user_password, user_auth_choice):
 
     try:
         check_user_name_exists(user_name, cursor)
-        user_auth = user_auth_choice == 'Y'
         new_folder_path = move_uploaded_images(upload_folder, dataset_dir)
         print(f"New folder created: {new_folder_path}")
-        check_and_preprocess(new_folder_path, labels_csv, user_auth, current_classifier_dir, backup_classifier_dir, user_name, flag_file, user_password, cursor)
+        check_and_preprocess(new_folder_path, current_classifier_dir, backup_classifier_dir, user_name, flag_file, user_password, cursor)
         conn.commit()
     except Exception as e:
         print(f"An error occurred: {e}")
