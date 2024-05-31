@@ -29,6 +29,11 @@
 ## AFTER THE CONVERSATION
 
 > Reread your notes and create action points. Make choices from all the feedback you received: What can you work on and what will you set aside for now. What were the priorities? Review the assignment sheet again to determine your focus points. Write your action points on the feedback sheet.
+# MVP Moments
+
+## MVP01 (28/05/2024)
+
+- Feedback: Models work well, camera connection with model works, Roboflow OK, toggle OK, MD file OK, on shedule.
 
 # Feedforward Conversations
 
@@ -68,14 +73,18 @@ This is the feedback on my questions.
 
 - Feedback 3: You can use tape on the door, or make a design so that the door has 2 parts on top and down that fit in the the wall top and bottom so it can turn in its position. The walls can stay in the ground with the same mechanism by cutting out certain parts out the ground and fitting them with the wall.
 
-## Conversation 3 (Date: xx/xx/2024)
+## Conversation 3 (Date: 30/05/2024)
 
-Lecturer:
+Lecturer: Marie Dewitte
 
 Questions for this conversation:
 
-- [x] Question 1: V
+- Question 1: Can i use the libraries i am using?
+
+- Question 2: Can i use flask in my application?
 
 This is the feedback on my questions.
 
-- Feedback 1: G
+- Feedback 1: Yes you can, but you need atleast one model you trained yourself.
+
+- Feedback 2: Consult PJ for exact feedback on a flask interface.
