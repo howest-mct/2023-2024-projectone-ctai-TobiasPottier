@@ -15,7 +15,7 @@ from scipy.spatial.distance import euclidean
 #endregion
 
 
-#region BLE connection
+#region BLE connection w
 print('Starting BLE Client...')
 tx_q = queue.Queue()
 rx_q = queue.Queue()
