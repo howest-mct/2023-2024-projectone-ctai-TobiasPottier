@@ -19,6 +19,7 @@ show_face_event = threading.Event()
 stop_event = threading.Event()
 face_det_event = threading.Event()
 camera_open_event = threading.Event()
+images_processed_event = threading.Event()
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -64,9 +65,20 @@ def check_camera_status():
     else:
         return jsonify({"camera_open": False})
 
+@app.route('/check_processing_status', methods=['GET'])
+def check_processing_status():
+    if images_processed_event.is_set():
+        return jsonify({"img_processed": True})
+    else:
+        return jsonify({"img_processed": False})
+
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     global picture_index, take_picture_event, user_name, user_password
+    if images_processed_event.is_set():
+        flash('Upload Succesful!')
+        images_processed_event.clear()
+        return render_template('upload.html')
     if request.method == 'POST':
         user_name = request.form['user_name']
         user_password = request.form['password']
@@ -96,8 +108,8 @@ def camera():
                 take_picture_event.clear()
                 try:
                     show_face_event.clear()
-                    ImagePreprocessing.main(user_name, user_password)
-                    flash('Succesfully Processed and Uploaded User!')
+                    threading.Thread(target=ImagePreprocessing.main, args=(user_name, user_password, images_processed_event)).start()
+                    flash('Processing Upload...')
                     picture_index = 0
                     return redirect(url_for('upload'))
                 except Exception as ex:

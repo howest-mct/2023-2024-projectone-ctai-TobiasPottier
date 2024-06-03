@@ -5,8 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Delete User</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+      .navbar-brand img {
+          height: 40px; /* Adjust the height as needed */
+      }
+    </style>
   </head>
   <body>
+    <nav class="navbar navbar-light bg-light">
+      <a class="navbar-brand" href="/">
+        <img src="static/logo.png" alt="Logo">
+      </a>
+    </nav>
     <div class="container">
       <h1 class="mt-5">Delete User</h1>
       {% with messages = get_flashed_messages() %}

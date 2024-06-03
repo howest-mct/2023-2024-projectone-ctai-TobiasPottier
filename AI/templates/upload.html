@@ -5,6 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Upload New User</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      function checkProcessingStatus() {
+          $.getJSON("/check_processing_status", function(data) {
+              if (data.img_processed) {
+                  location.reload();
+              } else {
+                  setTimeout(checkProcessingStatus, 3000);
+              }
+          });
+      }
+      $(document).ready(function() {
+          checkProcessingStatus();
+      });
+    </script>
+    <style>
+      .navbar-brand img {
+          height: 40px; /* Adjust the height as needed */
+      }
+    </style>
     <style>
       #processingMessage {
         display: none;
@@ -12,6 +32,11 @@
     </style>
   </head>
   <body>
+    <nav class="navbar navbar-light bg-light">
+      <a class="navbar-brand" href="/">
+        <img src="static/logo.png" alt="Logo">
+      </a>
+    </nav>
     <div class="container">
       <h1 class="mt-5">Upload New User</h1>
       {% with messages = get_flashed_messages() %}

@@ -328,7 +328,7 @@ def check_and_preprocess(folder_path, current_classifier_dir, backup_classifier_
 
 
 
-def main(user_name, user_password):
+def main(user_name, user_password, images_processed_event):
     dataset_dir = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset"
     current_classifier_dir = "./"
     backup_classifier_dir = "./BackupModels"
@@ -349,6 +349,7 @@ def main(user_name, user_password):
         print(f"New folder created: {new_folder_path}")
         check_and_preprocess(new_folder_path, current_classifier_dir, backup_classifier_dir, user_name, flag_file, user_password, cursor)
         conn.commit()
+        images_processed_event.set()
     except Exception as e:
         print(f"An error occurred: {e}")
         conn.rollback()
