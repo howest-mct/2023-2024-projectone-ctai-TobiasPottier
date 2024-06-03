@@ -11,5 +11,7 @@ class ServoMotor:
 
     def turn0degrees(self):
         self.servo_pwm.ChangeDutyCycle(3)
+    def turn90degrees(self):
+        self.servo_pwm.ChangeDutyCycle(8)
     def turn180degrees(self):
         self.servo_pwm.ChangeDutyCycle(13)

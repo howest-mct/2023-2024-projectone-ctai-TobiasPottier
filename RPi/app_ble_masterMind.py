@@ -93,7 +93,7 @@ def main():
                     lcd.send_string(f'{" "*16}', lcd.LCD_LINE_1)
                     lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
                     lcd.backlight_on()
-                    servorMotor.turn180degrees()
+                    servorMotor.turn90degrees()
                     timer = max((10 - abs(start_time - current_time)), 0)
                     if timer == 0:
                         open_door = False
@@ -119,7 +119,7 @@ def main():
                 lcd.send_string(f'{" "*16}', lcd.LCD_LINE_1)
                 lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
                 lcd.send_string(f'Door Unlocked!', lcd.LCD_LINE_2)
-                servorMotor.turn180degrees()
+                servorMotor.turn90degrees()
             # if i%5 == 0: # Send some data every 5 iterations
             #     tx_q.put("test{}".format(i))
             # i += 1
