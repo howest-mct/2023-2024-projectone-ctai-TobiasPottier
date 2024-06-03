@@ -1,6 +1,5 @@
 from flask import Flask, request, render_template, redirect, url_for, flash, jsonify
 import os
-from werkzeug.utils import secure_filename
 import time
 import threading
 print('Importing ImagePreprocessing.py...')
