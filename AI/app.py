@@ -11,12 +11,14 @@ print('Importing FullFaceRegnition.py')
 import FullFaceRecognitionBLE
 
 picture_index = 0
+open_camera_index = 0
 user_name = None
 user_password = None
 take_picture_event = threading.Event()
 show_face_event = threading.Event()
 stop_event = threading.Event()
 face_det_event = threading.Event()
+camera_open_event = threading.Event()
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -43,20 +45,25 @@ def delete_uploaded_images(upload_folder):
         except Exception as e:
             print(f"Failed to delete {file_path}. Reason: {e}")
 
-# @app.route('/')
-# def index():
-#     return '''
-#         <h1>In progress</h1>
-#         <p>Go to <a href="/upload">Upload</a> or <a href="/delete">Delete</a> or <a href="/recognition">Recognition</a></p>
-#     '''
 
 
 @app.route('/', methods=['GET'])
-def recognition():
-    flash('Opening Recognition Camera...')
-    threading.Thread(target=FullFaceRecognitionBLE.main, args=(take_picture_event, show_face_event, face_det_event, stop_event)).start()
+def index():
+    global open_camera_index
+    open_camera_index+=1
+    if open_camera_index > 1:
+        flash('Camera Open!')
+    else:
+        flash('Opening Recognition Camera...')
+        threading.Thread(target=FullFaceRecognitionBLE.main, args=(take_picture_event, show_face_event, face_det_event, stop_event, camera_open_event)).start()
     return render_template('recognition.html')
 
+@app.route('/check_camera_status', methods=['GET'])
+def check_camera_status():
+    if camera_open_event.is_set() and open_camera_index == 1:
+        return jsonify({"camera_open": True})
+    else:
+        return jsonify({"camera_open": False})
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():

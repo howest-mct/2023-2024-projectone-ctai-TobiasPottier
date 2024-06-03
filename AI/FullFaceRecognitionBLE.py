@@ -36,11 +36,11 @@ def init_ble_thread():
 # Initialize the thread variable
 ble_client_thread = None
 
-# Repeat the thread initialization until the connection_event is set
-while not connection_event.is_set():
-    if ble_client_thread is None or not ble_client_thread.is_alive():
-        init_ble_thread()
-    connection_event.wait(timeout=5)  # Optional timeout to avoid tight looping
+# # Repeat the thread initialization until the connection_event is set
+# while not connection_event.is_set():
+#     if ble_client_thread is None or not ble_client_thread.is_alive():
+#         init_ble_thread()
+#     connection_event.wait(timeout=5)  # Optional timeout to avoid tight looping
 
 print('BLE CONNECTION ESTABLISHED')
 #endregion
@@ -129,7 +129,7 @@ embedder = FaceNet()
 
 print('Models Succesfully Loaded!')
 
-def main(take_picture_event, show_face_event, face_det_event, stop_event):
+def main(take_picture_event, show_face_event, face_det_event, stop_event, camera_open_event):
     print('Opening Camera...')
     # Open a connection to the webcam
     cap = cv2.VideoCapture(0)
@@ -151,6 +151,7 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event):
     last_state = None
     captures_dir = './captures'
     print('Program Ready!')
+    camera_open_event.set()
     while not stop_event.is_set():
         # Capture frame-by-frame
         ret, frame = cap.read()
