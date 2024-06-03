@@ -12,6 +12,26 @@ GPIO.setup(buzzer_pin, GPIO.OUT)
 buzzer_pwm = GPIO.PWM(buzzer_pin, 200)
 buzzer_pwm.start(50)
 buzzer_pwm.ChangeFrequency(1)
+tx_buzzer = queue.Queue()
+def buzzer(rx_q):
+    global buzzer_pwm
+    previous_message = ''
+    while True:
+        if rx_q is not None:
+            try:
+                incoming = rx_q.get(timeout=.1) # Wait for up to .1 seconds
+                if incoming:
+                    message = "{}".format(incoming)
+                if message != previous_message:
+                    if message == 'play_buzzer':
+                        start_buzzer(1)
+                    elif message == 'stop_buzzer':
+                        stop_buzzer()
+                previous_message = message
+            except Exception as ex:
+                time.sleep(.1)
+
+threading.Thread(target=buzzer, args=(tx_buzzer,)).start()
 
 btn_pin = 16
 GPIO.setup(btn_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -40,11 +60,9 @@ from bluetooth_uart_server.bluetooth_uart_server import ble_gatt_uart_loop
 def stop_buzzer():
     global buzzer_pwm, buzzer_pin
     buzzer_pwm.stop()
-    GPIO.output(buzzer_pin, GPIO.LOW)
 
 def start_buzzer(frequency):
     global buzzer_pwm, buzzer_pin
-    buzzer_pwm = GPIO.PWM(buzzer_pin, frequency)
     buzzer_pwm.start(50)
 
 
@@ -62,7 +80,6 @@ def main():
     tx_q = queue.Queue()
     device_name = "TPBias-pi-gatt-uart" # your own (unique) device name
     threading.Thread(target=ble_gatt_uart_loop, args=(rx_q, tx_q, device_name), daemon=True).start()
-    lcd.send_string("BLE Server Ready", lcd.LCD_LINE_1)
 
     servorMotor = ServoMotor()
     message = 'NUD'
@@ -76,7 +93,7 @@ def main():
                     print(message)
                 if message == 'Start':
                     connection_made = True
-                    stop_buzzer()
+                    tx_buzzer.put('stop_buzzer')
                     lcd.clear()
                     lcd.send_string('Connected!', lcd.LCD_LINE_1)
                 elif message == 'UD':
@@ -84,6 +101,9 @@ def main():
                         start_time = current_time
                 elif message == 'NUD':
                     lcd.clear()
+                elif message == 'exit':
+                    connection_made = False
+                    tx_buzzer.put('play_buzzer')
             except Exception as e:
                 pass # nothing in Q 
 
@@ -120,6 +140,10 @@ def main():
                 lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
                 lcd.send_string(f'Door Unlocked!', lcd.LCD_LINE_2)
                 servorMotor.turn90degrees()
+            elif not connection_made:
+                servorMotor.turn0degrees()
+                lcd.clear()
+                lcd.send_string("No Connection", lcd.LCD_LINE_1)
             # if i%5 == 0: # Send some data every 5 iterations
             #     tx_q.put("test{}".format(i))
             # i += 1
