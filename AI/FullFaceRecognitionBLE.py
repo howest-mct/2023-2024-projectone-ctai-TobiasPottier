@@ -266,9 +266,8 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event, camera
             break
 
     # Release the webcam and close windows
-    current_state = 'NUD'
     clear_queue(tx_q)
-    tx_q.put(current_state)
+    tx_q.put('exit')
     stop_event.clear()
     cap.release()
     cv2.destroyAllWindows()
