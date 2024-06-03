@@ -92,9 +92,9 @@ def camera():
             picture_index += 1
             take_picture_event.set()
             if picture_index == 5:
+                time.sleep(.5)  # to makes sure all images are in /captures
                 take_picture_event.clear()
                 try:
-                    time.sleep(.5)  # to makes sure all images are in /captures
                     show_face_event.clear()
                     ImagePreprocessing.main(user_name, user_password)
                     flash('Succesfully Processed and Uploaded User!')

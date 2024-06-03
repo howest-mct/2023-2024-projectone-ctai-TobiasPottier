@@ -36,11 +36,11 @@ def init_ble_thread():
 # Initialize the thread variable
 ble_client_thread = None
 
-# Repeat the thread initialization until the connection_event is set
-while not connection_event.is_set():
-    if ble_client_thread is None or not ble_client_thread.is_alive():
-        init_ble_thread()
-    connection_event.wait(timeout=5)  # Optional timeout to avoid tight looping
+# # Repeat the thread initialization until the connection_event is set
+# while not connection_event.is_set():
+#     if ble_client_thread is None or not ble_client_thread.is_alive():
+#         init_ble_thread()
+#     connection_event.wait(timeout=5)  # Optional timeout to avoid tight looping
 
 print('BLE CONNECTION ESTABLISHED')
 #endregion
@@ -152,6 +152,8 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event, camera
     captures_dir = './captures'
     print('Program Ready!')
     camera_open_event.set()
+    face_count = 0
+    face_window_open = False
     while not stop_event.is_set():
         # Capture frame-by-frame
         ret, frame = cap.read()
@@ -166,7 +168,7 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event, camera
 
             face_detected = False
             current_state = 'NUD'  # Default state is No User Detected
-
+            face_count = 0
             # Process the results and show only the detected faces
             for result in results:
                 boxes = result.boxes
@@ -180,69 +182,73 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event, camera
                     face_detected = True
 
                     if show_face_event.is_set():
-                        cv2.imshow('Webcam Face Detection and Recognition', face)
-                    else:
-                        # Resize the face to 160x160 as required by FaceNet
-                        face = cv2.resize(face, (160, 160))
-                        face = face.astype('float32')
-                        face = np.expand_dims(face, axis=0)
+                        face_count += 1
+                        if face_count == 1:
+                            cv2.imshow('Detected Face', face)
+                            face_window_open = True
+                            if take_picture_event.is_set():
+                                # Save the current frame to /captures directory
+                                os.makedirs(captures_dir, exist_ok=True)
+                                existing_pictures = [f for f in os.listdir('./captures') if f.startswith("Fpic")]
+                                if existing_pictures:
+                                    indices = [int(f.split('_')[-1].split('.')[0]) for f in existing_pictures]
+                                    next_index = max(indices) + 1
+                                else:
+                                    next_index = 1
+                                capture_path = os.path.join(captures_dir, f'Fpic_{next_index}.jpg')
+                                cv2.imwrite(capture_path, face)
+                                print(f"FacePicture saved to {capture_path}")
 
-                        # Generate embeddings for the face
-                        embeddings = embedder.embeddings(face)
+                                # Clear the take_picture_event
+                                take_picture_event.clear()
 
-                        probabilities = classifier.predict_proba(embeddings)  # this gives you each probability per class
-                        max_index = np.argmax(probabilities)  # max index = label of the person who has the highest probability
-                        confidence = probabilities[0][max_index]
-                        predicted_label = sequential_list_labels[max_index]
+                    # Resize the face to 160x160 as required by FaceNet
+                    face = cv2.resize(face, (160, 160))
+                    face = face.astype('float32')
+                    face = np.expand_dims(face, axis=0)
 
-                        # Compute the Euclidean distance to known faces
-                        known_embeddings_for_label = known_embeddings[predicted_label]
-                        distances = [euclidean(embeddings[0], emb) for emb in known_embeddings_for_label]
-                        min_distance = min(distances)
+                    # Generate embeddings for the face
+                    embeddings = embedder.embeddings(face)
 
-                        # Only display the label if confidence is above a certain threshold
-                        confidence_threshold = 0.50
-                        euclidean_distance_treshold = 0.70
-                        if confidence > confidence_threshold and min_distance < euclidean_distance_treshold:
-                            # Convert the predicted label to a string
-                            predicted_label_str = f"{predicted_label} (={label_mapping[predicted_label]}) | ({confidence:.2f})  DIST {min_distance:.2f}"
+                    probabilities = classifier.predict_proba(embeddings)  # this gives you each probability per class
+                    max_index = np.argmax(probabilities)  # max index = label of the person who has the highest probability
+                    confidence = probabilities[0][max_index]
+                    predicted_label = sequential_list_labels[max_index]
 
-                            # Draw bounding box and label on the frame
-                            cv2.putText(frame, f'{predicted_label_str}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
-                        
-                            if predicted_label in auth_labels:
-                                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                                current_state = 'UD'
-                            else:
-                                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                                current_state = 'NUD'
-                            
+                    # Compute the Euclidean distance to known faces
+                    known_embeddings_for_label = known_embeddings[predicted_label]
+                    distances = [euclidean(embeddings[0], emb) for emb in known_embeddings_for_label]
+                    min_distance = min(distances)
+
+                    # Only display the label if confidence is above a certain threshold
+                    confidence_threshold = 0.60
+                    euclidean_distance_treshold = 0.70
+                    if show_face_event.is_set():
+                        if face_count == 1:
+                            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 255), 2)
+                            cv2.putText(frame, f'Face Picture', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+                    elif confidence > confidence_threshold and min_distance < euclidean_distance_treshold:
+                        # Convert the predicted label to a string
+                        predicted_label_str = f"{predicted_label} (={label_mapping[predicted_label]}) | ({confidence:.2f})  DIST {min_distance:.2f}"
+
+                        # Draw bounding box and label on the frame
+                        cv2.putText(frame, f'{predicted_label_str}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+                    
+                        if predicted_label in auth_labels:
+                            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                            current_state = 'UD'
                         else:
-                            # Draw bounding box and label on the frame
-                            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                            cv2.putText(frame, f'Non-User | ({confidence:.2f}) DIST {min_distance:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+                            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
                             current_state = 'NUD'
+                    else:
+                        # Draw bounding box and label on the frame
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                        cv2.putText(frame, f'Non-User | ({confidence:.2f}) DIST {min_distance:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+                        current_state = 'NUD'
 
-                        box_states.append(current_state)
+                    box_states.append(current_state)
 
                 current_state = 'UD' if 'UD' in box_states else 'NUD'
-
-            # Check if the take_picture_event is set
-            if take_picture_event.is_set() and show_face_event.is_set():
-                # Save the current frame to /captures directory
-                os.makedirs(captures_dir, exist_ok=True)
-                existing_pictures = [f for f in os.listdir('./captures') if f.startswith("Fpic")]
-                if existing_pictures:
-                    indices = [int(f.split('_')[-1].split('.')[0]) for f in existing_pictures]
-                    next_index = max(indices) + 1
-                else:
-                    next_index = 1
-                capture_path = os.path.join(captures_dir, f'Fpic_{next_index}.jpg')
-                cv2.imwrite(capture_path, face)
-                print(f"FacePicture saved to {capture_path}")
-
-                # Clear the take_picture_event
-                take_picture_event.clear()
 
             if face_detected:
                 face_det_event.set()
@@ -257,10 +263,13 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event, camera
 
 
         # Display the resulting frame
-        if not show_face_event.is_set():
-            cv2.imshow('Webcam Face Detection and Recognition', frame)
+        cv2.imshow('Webcam Face Detection and Recognition', frame)
 
-        
+        # Close the separate face window if show_face_event is not set
+        if not show_face_event.is_set() and face_window_open:
+            cv2.destroyWindow('Detected Face')
+            face_window_open = False
+
         # Break the loop if the user presses 'q'
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
