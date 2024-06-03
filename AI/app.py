@@ -46,7 +46,6 @@ def delete_uploaded_images(upload_folder):
             print(f"Failed to delete {file_path}. Reason: {e}")
 
 
-
 @app.route('/', methods=['GET'])
 def index():
     global open_camera_index
