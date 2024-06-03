@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Recognition</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    function checkCameraStatus() {
+        $.getJSON("/check_camera_status", function(data) {
+            if (data.camera_open) {
+                location.reload();
+            } else {
+                setTimeout(checkCameraStatus, 3000);
+            }
+        });
+    }
+    $(document).ready(function() {
+        checkCameraStatus();
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1 class="mt-5">Recognition</h1>
+    <div id="messages" class="mt-3">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="alert alert-success" role="alert">
+            {% for message in messages %}
+              {{ message }}
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+    </div>
+    <p>Go to <a href="/upload">Upload</a> or <a href="/delete">Delete</a></p>
+  </div>
+</body>
+</html>
