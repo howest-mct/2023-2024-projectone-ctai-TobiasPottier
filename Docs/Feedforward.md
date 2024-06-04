@@ -31,9 +31,13 @@
 > Reread your notes and create action points. Make choices from all the feedback you received: What can you work on and what will you set aside for now. What were the priorities? Review the assignment sheet again to determine your focus points. Write your action points on the feedback sheet.
 # MVP Moments
 
-## MVP01 (28/05/2024)
+## MVP01 (28/05/2024)  Teachers: Cristophe, Tijn
 
-- Feedback: Models work well, camera connection with model works, Roboflow OK, toggle OK, MD file OK, on shedule.
+- Feedback: Models work well, camera connection with model works, Roboflow OK, toggle OK, MD file OK, on schedule.
+
+## MVP02 (04/06/2024)  Teachers: Cristophe, Tijn, Claudia
+
+- Feedback: Works well, is good. On shedule.
 
 # Feedforward Conversations
 
