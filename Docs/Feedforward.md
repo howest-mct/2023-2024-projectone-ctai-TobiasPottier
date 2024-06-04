@@ -37,7 +37,7 @@
 
 ## MVP02 (04/06/2024)  Teachers: Cristophe, Tijn, Claudia
 
-- Feedback: Works well, is good. On shedule.
+- Feedback: Works well, is good. On shedule. Will be nice to also see some maker part for next week.
 
 # Feedforward Conversations
 
