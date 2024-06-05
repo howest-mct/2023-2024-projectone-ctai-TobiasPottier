@@ -43,7 +43,7 @@
 
 ## Conversation 1 (Date: 24/05/2024)
 
-Lecturer: Frederik
+Lecturer: Frederik Waeyaert
 
 Questions for this conversation:
 
@@ -92,3 +92,15 @@ This is the feedback on my questions.
 - Feedback 1: Yes you can, but you need atleast one model you trained yourself.
 
 - Feedback 2: Consult PJ for exact feedback on a flask interface.
+
+## Conversation 4 (Date: 03/06/2024)
+
+Lecturer: Tijn Veraghtert
+
+Questions for this conversation:
+
+- Question 1: how should i open the door with my servo-motor
+
+This is the feedback on my questions.
+
+- Feedback 1: You can create a certain design (showed on paper) with the servo motor and a copper string.
