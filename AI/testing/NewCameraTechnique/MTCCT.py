@@ -24,7 +24,10 @@ def CalculateDetection(rx: queue.Queue, tx: queue.Queue, accept_frame_event: thr
         frame = rx.get()
         if frame is not None:
             results = model(frame)
-            time.sleep(.2) # simulated calc time
+            for result in results:
+                boxes = result.boxes
+                for box in boxes:
+                    time.sleep(.2) # simulated calc time
             if tx.full():
                 tx.get()  # Remove the old frame if the queue is full
             tx.put(results)
