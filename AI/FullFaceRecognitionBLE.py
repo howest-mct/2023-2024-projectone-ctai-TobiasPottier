@@ -32,7 +32,7 @@ def init_ble_thread():
         ble_client_thread.start()
     except Exception as e:
         print(f"Error starting BLE client thread: {e}")
-
+# test
 # Initialize the thread variable
 ble_client_thread = None
 
