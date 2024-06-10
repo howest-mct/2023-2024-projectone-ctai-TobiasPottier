@@ -113,7 +113,7 @@ def main():
                     lcd.send_string(f'{" "*16}', lcd.LCD_LINE_1)
                     lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
                     lcd.backlight_on()
-                    servorMotor.turn90degrees()
+                    servorMotor.turn180degrees()
                     timer = max((10 - abs(start_time - current_time)), 0)
                     if timer == 0:
                         open_door = False
@@ -139,7 +139,7 @@ def main():
                 lcd.send_string(f'{" "*16}', lcd.LCD_LINE_1)
                 lcd.send_string(f'{" "*16}', lcd.LCD_LINE_2)
                 lcd.send_string(f'Door Unlocked!', lcd.LCD_LINE_2)
-                servorMotor.turn90degrees()
+                servorMotor.turn180degrees()
             elif not connection_made:
                 servorMotor.turn0degrees()
                 lcd.clear()
@@ -150,6 +150,8 @@ def main():
     except Exception as ex:
         print(ex)
     finally:
+        servorMotor.turn180degrees()
+        time.sleep(1)
         servorMotor.turn0degrees()
         time.sleep(.1)
         lcd.clear()
