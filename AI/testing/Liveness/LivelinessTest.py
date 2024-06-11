@@ -93,13 +93,15 @@ while True:
             face = frame[y1:y2, x1:x2]
 
             # Perform liveness detection
+            liveness_treshold = 0.03
             liveness_score = liveness_detector(face)
-            liveness_label = "Real" if liveness_score > 0.03 else "Fake"
+            liveness_label = "Real" if liveness_score > liveness_treshold else "Fake"
+            color = (0, 255, 0) if liveness_score > liveness_treshold else (0, 0, 255)
 
             # Draw bounding box and liveness score on the frame
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
             label = f'{liveness_label} ({liveness_score:.2f})'
-            cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+            cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
 
     # Display the resulting frame
     cv2.imshow('Webcam Liveness Detection', frame)
