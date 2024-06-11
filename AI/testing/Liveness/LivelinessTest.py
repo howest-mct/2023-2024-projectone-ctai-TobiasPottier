@@ -94,7 +94,7 @@ while True:
 
             # Perform liveness detection
             liveness_score = liveness_detector(face)
-            liveness_label = "Real" if liveness_score > 0.05 else "Fake"
+            liveness_label = "Real" if liveness_score > 0.03 else "Fake"
 
             # Draw bounding box and liveness score on the frame
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)

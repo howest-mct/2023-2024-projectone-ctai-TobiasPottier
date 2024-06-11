@@ -95,3 +95,5 @@ scikit-learn==1.5.0
 imgaug==0.4.0
 mysql-connector-python==8.4.0
 flask==3.0.3
+onnxruntime==1.18.0
+progressbar==2.5
