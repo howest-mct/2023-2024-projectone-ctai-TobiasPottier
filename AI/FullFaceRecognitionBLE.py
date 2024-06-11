@@ -15,7 +15,7 @@ from scipy.spatial.distance import euclidean
 #endregion
 
 
-#region BLE connection w
+#region BLE connection
 print('Starting BLE Client...')
 tx_q = queue.Queue()
 rx_q = queue.Queue()
@@ -36,11 +36,11 @@ def init_ble_thread():
 # Initialize the thread variable
 ble_client_thread = None
 
-# Repeat the thread initialization until the connection_event is set
-while not connection_event.is_set():
-    if ble_client_thread is None or not ble_client_thread.is_alive():
-        init_ble_thread()
-    connection_event.wait(timeout=5)  # Optional timeout to avoid tight looping
+# # Repeat the thread initialization until the connection_event is set
+# while not connection_event.is_set():
+#     if ble_client_thread is None or not ble_client_thread.is_alive():
+#         init_ble_thread()
+#     connection_event.wait(timeout=5)  # Optional timeout to avoid tight looping
 
 print('BLE CONNECTION ESTABLISHED')
 #endregion
@@ -119,17 +119,83 @@ reload_resources()
 #endregion
 
 #region Face Recognition
-
 print('Loading Models...')
 # Load the YOLO model for face detection
 yolo_model = YOLO('./detectionModel3.pt')
-
 # Load the FaceNet model for face embedding
 embedder = FaceNet()
-
 print('Models Succesfully Loaded!')
 
+
 def main(take_picture_event, show_face_event, face_det_event, stop_event, camera_open_event):
+    accept_frame_event = Event()
+    rx_frame = queue.Queue(maxsize=1)  # Limit the queue size to 1 to ensure only the latest frame is processed
+    tx_frame = queue.Queue(maxsize=1)
+
+    def CalculateRecogntion():
+        accept_frame_event.set()
+        while not stop_event.is_set():
+            if not reloading_stop:
+                frame = rx_frame.get()
+                if frame is not None:
+                    send_dict = {}
+                    results = yolo_model(frame)
+                    for result in results:
+                        boxes = result.boxes
+                        for box in boxes:
+                            user_auth = False
+                            info_list = []
+                            x1, y1, x2, y2 = box.xyxy[0]
+                            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+
+                            # Cut out the face from the frame
+                            face = frame[y1:y2, x1:x2]
+                            # Resize the face to 160x160 as required by FaceNet
+                            face = cv2.resize(face, (160, 160))
+                            face = face.astype('float32')
+                            face = np.expand_dims(face, axis=0)
+
+                            # Generate embeddings for the face
+                            embeddings = embedder.embeddings(face)
+
+                            probabilities = classifier.predict_proba(embeddings)  # this gives you each probability per class
+                            max_index = np.argmax(probabilities)  # max index = label of the person who has the highest probability
+                            confidence = probabilities[0][max_index]
+                            predicted_label = sequential_list_labels[max_index]
+
+                            # Compute the Euclidean distance to known faces
+                            known_embeddings_for_label = known_embeddings[predicted_label]
+                            distances = [euclidean(embeddings[0], emb) for emb in known_embeddings_for_label]
+                            min_distance = min(distances)
+
+                            # Only display the label if confidence is above a certain threshold
+                            confidence_threshold = 0.60
+                            euclidean_distance_treshold = 0.70
+
+                            if confidence > confidence_threshold and min_distance < euclidean_distance_treshold and predicted_label in auth_labels:
+                                user_auth = True
+                                    
+                            info_list = [user_auth, predicted_label, label_mapping[predicted_label], confidence, min_distance]
+                            send_dict[box] = info_list
+                    if tx_frame.full():
+                        tx_frame.get()  # Remove the old frame if the queue is full
+                    tx_frame.put(send_dict)
+                    if rx_frame.empty():
+                        accept_frame_event.set()
+            else:
+                send_dict = None
+                if tx_frame.full():
+                    tx_frame.get()  # Remove the old frame if the queue is full
+                tx_frame.put(send_dict)
+                if rx_frame.empty():
+                    accept_frame_event.set()
+
+
+
+    calc_thread = Thread(target=CalculateRecogntion, daemon=True)
+    calc_thread.start()
+
+    #region CameraDisplay
     print('Opening Camera...')
     # Open a connection to the webcam
     cap = cv2.VideoCapture(0)
@@ -154,6 +220,7 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event, camera
     camera_open_event.set()
     face_count = 0
     face_window_open = False
+    latest_calc_dict = None
     while not stop_event.is_set():
         # Capture frame-by-frame
         ret, frame = cap.read()
@@ -163,25 +230,20 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event, camera
             print("Error: Can't receive frame (stream end?). Exiting ...")
             raise Exception("Can't receive camera frame, exiting...")
         if not reloading_stop:   # make sure to only make predictions when models and SQL data are not being reloaded
-            # Make predictions with YOLO model
-            results = yolo_model(frame)
+            if show_face_event.is_set():
+                results = yolo_model(frame)
+                face_detected = False
+                face_count = 0
+                for result in results:
+                    boxes = result.boxes
+                    for box in boxes:
+                        x1, y1, x2, y2 = box.xyxy[0]
+                        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-            face_detected = False
-            current_state = 'NUD'  # Default state is No User Detected
-            face_count = 0
-            # Process the results and show only the detected faces
-            for result in results:
-                boxes = result.boxes
-                box_states = []
-                for box in boxes:
-                    x1, y1, x2, y2 = box.xyxy[0]
-                    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                        # Cut out the face from the frame
+                        face = frame[y1:y2, x1:x2]
+                        face_detected = True
 
-                    # Cut out the face from the frame
-                    face = frame[y1:y2, x1:x2]
-                    face_detected = True
-
-                    if show_face_event.is_set():
                         face_count += 1
                         if face_count == 1:
                             cv2.imshow('Detected Face', face)
@@ -201,59 +263,41 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event, camera
 
                                 # Clear the take_picture_event
                                 take_picture_event.clear()
-
-                    # Resize the face to 160x160 as required by FaceNet
-                    face = cv2.resize(face, (160, 160))
-                    face = face.astype('float32')
-                    face = np.expand_dims(face, axis=0)
-
-                    # Generate embeddings for the face
-                    embeddings = embedder.embeddings(face)
-
-                    probabilities = classifier.predict_proba(embeddings)  # this gives you each probability per class
-                    max_index = np.argmax(probabilities)  # max index = label of the person who has the highest probability
-                    confidence = probabilities[0][max_index]
-                    predicted_label = sequential_list_labels[max_index]
-
-                    # Compute the Euclidean distance to known faces
-                    known_embeddings_for_label = known_embeddings[predicted_label]
-                    distances = [euclidean(embeddings[0], emb) for emb in known_embeddings_for_label]
-                    min_distance = min(distances)
-
-                    # Only display the label if confidence is above a certain threshold
-                    confidence_threshold = 0.60
-                    euclidean_distance_treshold = 0.70
-                    if show_face_event.is_set():
-                        if face_count == 1:
                             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 255), 2)
                             cv2.putText(frame, f'Face Picture', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
-                    elif confidence > confidence_threshold and min_distance < euclidean_distance_treshold:
-                        # Convert the predicted label to a string
-                        predicted_label_str = f"{predicted_label} (={label_mapping[predicted_label]}) | ({confidence:.2f})  DIST {min_distance:.2f}"
+                if face_detected:
+                    face_det_event.set()
+                else:
+                    face_det_event.clear()
+            elif face_window_open:
+                cv2.destroyWindow('Detected Face')
+                face_window_open = False
+            else:
+                if accept_frame_event.is_set() and not rx_frame.full():
+                    rx_frame.put(frame)
+                    accept_frame_event.clear()
+                if not tx_frame.empty():
+                    latest_calc_dict: dict = tx_frame.get()
+                box_states = []
+                if latest_calc_dict is not None:
+                    for key, value in latest_calc_dict.items():
+                        predicted_label_str = f"{value[1]} (={value[2]}) | ({value[3]:.2f})  DIST {value[4]:.2f}"
+                        x1, y1, x2, y2 = key.xyxy[0]
+                        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-                        # Draw bounding box and label on the frame
-                        cv2.putText(frame, f'{predicted_label_str}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
-                    
-                        if predicted_label in auth_labels:
+                        if value[0] == True: # is the person authorized
+                            # Draw bounding box and label on the frame
+                            cv2.putText(frame, f'{predicted_label_str}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
                             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                             current_state = 'UD'
                         else:
-                            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                            cv2.putText(frame, f'Non-User', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+                            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
                             current_state = 'NUD'
-                    else:
-                        # Draw bounding box and label on the frame
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
-                        cv2.putText(frame, f'Non-User | ({confidence:.2f}) DIST {min_distance:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
-                        current_state = 'NUD'
 
-                    box_states.append(current_state)
-
+                        box_states.append(current_state)
+                    
                 current_state = 'UD' if 'UD' in box_states else 'NUD'
-
-            if face_detected:
-                face_det_event.set()
-            else:
-                face_det_event.clear()
 
             # Send the current state if it has changed from the last state
             if current_state != last_state:
@@ -261,14 +305,8 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event, camera
                 tx_q.put(current_state)
                 last_state = current_state
 
-
         # Display the resulting frame
         cv2.imshow('Webcam Face Detection and Recognition', frame)
-
-        # Close the separate face window if show_face_event is not set
-        if not show_face_event.is_set() and face_window_open:
-            cv2.destroyWindow('Detected Face')
-            face_window_open = False
 
         # Break the loop if the user presses 'q'
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -280,7 +318,6 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event, camera
     stop_event.clear()
     cap.release()
     cv2.destroyAllWindows()
-
 
 
 if __name__ == "__main__":
