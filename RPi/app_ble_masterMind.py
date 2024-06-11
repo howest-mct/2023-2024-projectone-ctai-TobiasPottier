@@ -150,10 +150,8 @@ def main():
     except Exception as ex:
         print(ex)
     finally:
-        servorMotor.turn180degrees()
-        time.sleep(1)
         servorMotor.turn0degrees()
-        time.sleep(.1)
+        time.sleep(.2)
         lcd.clear()
         time.sleep(.1)
         lcd.backlight_off()
