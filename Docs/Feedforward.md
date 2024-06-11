@@ -39,6 +39,10 @@
 
 - Feedback: Works well, is good. On shedule. Will be nice to also see some maker part for next week.
 
+## MVP03 (04/06/2024)  Teachers: Frederik, Geert, 
+
+- Feedback: Works good, toggl ok, md ok, instructables ok (not finished yet), change poster to be more clear about what your project does.
+
 # Feedforward Conversations
 
 ## Conversation 1 (Date: 24/05/2024)
