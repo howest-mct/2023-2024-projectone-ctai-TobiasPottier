@@ -153,8 +153,8 @@ def main():
         servorMotor.turn0degrees()
         time.sleep(.2)
         lcd.clear()
-        time.sleep(.1)
+        time.sleep(.2)
         lcd.backlight_off()
-        time.sleep(.1)
+        time.sleep(.5)
 if __name__ == '__main__':
     main()
