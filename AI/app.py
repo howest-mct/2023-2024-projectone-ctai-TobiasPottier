@@ -50,16 +50,17 @@ def delete_uploaded_images(upload_folder):
 def index():
     global open_camera_index
     open_camera_index+=1
-    if open_camera_index > 1:
+    if camera_open_event.is_set():
         flash('Camera Open!')
     else:
+        open_camera_index = 0
         flash('Opening Recognition Camera...')
         threading.Thread(target=FullFaceRecognitionBLE.main, args=(take_picture_event, show_face_event, face_det_event, stop_event, camera_open_event)).start()
     return render_template('recognition.html')
 
 @app.route('/check_camera_status', methods=['GET'])
 def check_camera_status():
-    if camera_open_event.is_set() and open_camera_index == 1:
+    if camera_open_event.is_set():
         return jsonify({"camera_open": True})
     else:
         return jsonify({"camera_open": False})

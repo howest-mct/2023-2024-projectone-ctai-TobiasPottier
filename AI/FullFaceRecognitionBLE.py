@@ -37,11 +37,11 @@ def init_ble_thread():
 # Initialize the thread variable
 ble_client_thread = None
 
-# # Repeat the thread initialization until the connection_event is set
-# while not connection_event.is_set():
-#     if ble_client_thread is None or not ble_client_thread.is_alive():
-#         init_ble_thread()
-#     connection_event.wait(timeout=5)  # Optional timeout to avoid tight looping
+# Repeat the thread initialization until the connection_event is set
+while not connection_event.is_set():
+    if ble_client_thread is None or not ble_client_thread.is_alive():
+        init_ble_thread()
+    connection_event.wait(timeout=5)  # Optional timeout to avoid tight looping
 
 print('BLE CONNECTION ESTABLISHED')
 #endregion
@@ -327,6 +327,7 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event, camera
     clear_queue(tx_q)
     tx_q.put('exit')
     stop_event.clear()
+    camera_open_event.clear()
     cap.release()
     cv2.destroyAllWindows()
 
