@@ -135,6 +135,7 @@ def main(take_picture_event, show_face_event, face_det_event, stop_event, camera
     rx_frame = queue.Queue(maxsize=1)  # Limit the queue size to 1 to ensure only the latest frame is processed
     tx_frame = queue.Queue(maxsize=1)
 
+    #region Calculate Frame
     def CalculateRecogntion():
         accept_frame_event.set()
         while not stop_event.is_set():

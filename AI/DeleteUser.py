@@ -96,7 +96,7 @@ def TrainAndReplaceModel(current_classifier_dir, backup_classifier_dir):
     X = np.vstack(df['embedding'].values)
     y = df['label'].values
 
-
+    # create a custum train_val split that will take val_size of each label
     def custom_train_val_split(y, val_size=0.1):
         train_indices = []
         val_indices = []
@@ -152,11 +152,6 @@ def TrainAndReplaceModel(current_classifier_dir, backup_classifier_dir):
     with open(current_classifier_path, 'wb') as f:
         pickle.dump(SVMmodel, f)
     print(f"New classifier saved at: {current_classifier_path}")
-
-    # Here I would add code to send a signal to the real-time script to reload its model
-    # For example, I might set a flag or send a message over a network, etc.
-    # This part is left for later implementation.
-    pass
 
 def delete_files_in_label_folder(images_user_dataset_dir, label_id):
     # Construct the path to the folder with the given label_id

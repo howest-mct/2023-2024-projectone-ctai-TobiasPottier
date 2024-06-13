@@ -9,6 +9,7 @@ import DeleteUser
 print('Importing FullFaceRegnition.py')
 import FullFaceRecognitionBLE
 
+# Global variables to keep track of states and events
 picture_index = 0
 open_camera_index = 0
 user_name = None
@@ -21,20 +22,21 @@ camera_open_event = threading.Event()
 images_processed_event = threading.Event()
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
+app.secret_key = "supersecretkey" # Secret key for session management
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB upload limit
 
-# Ensure the upload folder exists
-
-# Allowed file extensions
+# Allowed file extensions for uploads
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg'}
 
+# Directory for storing dataset images
 DATASET_DIR = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset"
 
+# Function to check allowed file extensions
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# Function to delete all files in the specified upload folder
 def delete_uploaded_images(upload_folder):
     for filename in os.listdir(upload_folder):
         file_path = os.path.join(upload_folder, filename)
@@ -55,6 +57,7 @@ def index():
     else:
         open_camera_index = 0
         flash('Opening Recognition Camera...')
+        # Start the face recognition thread, which will open the camera and recognition
         threading.Thread(target=FullFaceRecognitionBLE.main, args=(take_picture_event, show_face_event, face_det_event, stop_event, camera_open_event)).start()
     return render_template('recognition.html')
 
@@ -108,6 +111,7 @@ def camera():
                 take_picture_event.clear()
                 try:
                     show_face_event.clear()
+                    # Start image processing in a new thread, this will preprocess images and upload the user
                     threading.Thread(target=ImagePreprocessing.main, args=(user_name, user_password, images_processed_event)).start()
                     flash('Processing Upload...')
                     picture_index = 0
