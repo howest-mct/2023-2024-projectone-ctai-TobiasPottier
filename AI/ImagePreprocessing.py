@@ -329,7 +329,7 @@ def check_and_preprocess(folder_path, current_classifier_dir, backup_classifier_
 
 
 def main(user_name, user_password, images_processed_event):
-    dataset_dir = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset"
+    dataset_dir = "./dataset"
     current_classifier_dir = "./"
     backup_classifier_dir = "./BackupModels"
     flag_file = "./flag/reload_flag.txt"

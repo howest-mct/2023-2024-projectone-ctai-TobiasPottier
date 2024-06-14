@@ -211,7 +211,7 @@ def main(user_name, user_password):
         database='face_recognition'
     )
     cursor = conn.cursor()
-    users_images_dataset_dir = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset"
+    users_images_dataset_dir = "./dataset"
     flag_file = "./flag/reload_flag.txt"
     try:
         print('Getting LabelID...')
@@ -253,14 +253,4 @@ def main(user_name, user_password):
         conn.close() 
 
 if __name__ == "__main__":
-    # name = 'Tomas'
-    # userInput = input(f'Are you sure you want to delete: {name} ?(Y/N): ')
-    # if userInput.upper() != 'Y':
-    #     print('Delete CANCELLED')
-    #     exit()
-    # userInput2 = input(f'Are you REALLY sure you want to delete FROM ALL DATABASES: {name} ?(Y/N): ')
-    # if userInput2.upper() != 'Y':
-    #     print('Delete CANCELLED')
-    #     exit()
-    # main(name, "Tomi3")
     print('Script ran from __main__, no chages made')

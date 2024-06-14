@@ -28,9 +28,6 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB upload limit
 # Allowed file extensions for uploads
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg'}
 
-# Directory for storing dataset images
-DATASET_DIR = "C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubDataset"
-
 # Function to check allowed file extensions
 def allowed_file(filename):
     return '.' in filename and \
