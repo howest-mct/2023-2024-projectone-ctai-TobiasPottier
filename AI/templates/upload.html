@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Upload New User</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      function checkProcessingStatus() {
+          $.getJSON("/check_processing_status", function(data) {
+              if (data.img_processed) {
+                  location.reload();
+              } else {
+                  setTimeout(checkProcessingStatus, 3000);
+              }
+          });
+      }
+      $(document).ready(function() {
+          checkProcessingStatus();
+      });
+    </script>
+    <style>
+      .navbar-brand img {
+          height: 40px; /* Adjust the height as needed */
+      }
+    </style>
+    <style>
+      #processingMessage {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-light bg-light">
+      <a class="navbar-brand" href="/">
+        <img src="static/logo.png" alt="Logo">
+      </a>
+    </nav>
+    <div class="container">
+      <h1 class="mt-5">Upload New User</h1>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="alert alert-warning" role="alert">
+            {% for message in messages %}
+              {{ message }}
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <form method="post" id="uploadForm">
+        <div class="form-group">
+          <label for="user_name">User Name:</label>
+          <input type="text" class="form-control" name="user_name" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" class="form-control" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Take Pictures...</button>
+      </form>
+      <div id="processingMessage" class="alert alert-info mt-3">
+        Opening Camera, please wait...
+      </div>
+    </div>
+
+    <script>
+      document.getElementById('uploadForm').onsubmit = function() {
+        document.getElementById('processingMessage').style.display = 'block';
+      };
+    </script>
+  </body>
+</html>

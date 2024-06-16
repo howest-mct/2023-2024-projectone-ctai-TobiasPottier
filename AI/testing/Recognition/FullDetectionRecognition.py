@@ -12,10 +12,9 @@ yolo_model = YOLO('./best.pt')
 embedder = FaceNet()
 
 # Load the trained classifier and label encoder
-with open('facenet_classifier.pkl', 'rb') as f:
+with open('SVM_classifier.pkl', 'rb') as f:
     classifier = pickle.load(f)
-with open('label_encoder.pkl', 'rb') as f:
-    label_encoder = pickle.load(f)
+
 
 # Open a connection to the webcam
 cap = cv2.VideoCapture(0)
@@ -58,7 +57,7 @@ while True:
             probabilities = classifier.predict_proba(embeddings)
             max_index = np.argmax(probabilities)
             confidence = probabilities[0][max_index]
-            predicted_label = label_encoder.inverse_transform([max_index])[0]
+            predicted_label = max_index
 
             # Only display the label if confidence is above a certain threshold
             confidence_threshold = 0.3
@@ -70,7 +69,7 @@ while True:
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
                 cv2.putText(frame, f'{predicted_label_str}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
                
-                if predicted_label == 'Tobias':
+                if predicted_label == 1:
                     os.system('cls')
                     print('UNLOCK')
 

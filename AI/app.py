@@ -1,130 +1,150 @@
-# from IPython.display import Video
-import sys
-import asyncio
-
-
-from queue import Queue
-import threading
+from flask import Flask, request, render_template, redirect, url_for, flash, jsonify
+import os
 import time
-from BLE_client import run
-import cv2  # Importing the OpenCV library for computer vision tasks.
-import supervision as sv  # Importing a module named supervision as sv.
-# Importing YOLO object detection model from ultralytics library.
-from ultralytics import YOLO
-import gradio as gr  # Importing Gradio library for creating web interfaces.
+import threading
+print('Importing ImagePreprocessing.py...')
+import ImagePreprocessing
+print('Importing DeleteUser.py...')
+import DeleteUser
+print('Importing FullFaceRegnition.py')
+import FullFaceRecognitionBLE
 
-print("start")
+# Global variables to keep track of states and events
+picture_index = 0
+open_camera_index = 0
+user_name = None
+user_password = None
+take_picture_event = threading.Event()
+show_face_event = threading.Event()
+stop_event = threading.Event()
+face_det_event = threading.Event()
+camera_open_event = threading.Event()
+images_processed_event = threading.Event()
 
-model = YOLO("AI/runs/detect/train5/weights/best.pt")
-bounding_box_annotator = sv.BoundingBoxAnnotator()
-label_annotator = sv.LabelAnnotator()
+app = Flask(__name__)
+app.secret_key = "supersecretkey" # Secret key for session management
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB upload limit
 
-# Creating two Queues for communication between threads.
-tx_q = Queue()
-rx_q = Queue()
+# Allowed file extensions for uploads
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg'}
 
-targetDeviceName="TPBias-pi-gatt-uart"
-targetDeviceMac="D8:3A:DD:D9:73:57"
+# Function to check allowed file extensions
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def init_ble_thread():
-    # Creating a new thread for running a function 'run' with specified arguments.
-    ble_client_thread = threading.Thread(target=run, args=(
-        rx_q, tx_q, targetDeviceName, targetDeviceMac), daemon=True)
-    # Starting the thread execution.
-    ble_client_thread.start()
-
-
-# Defining a function named show_preds_video, which takes a video file path as input.
-def show_preds_video(video_path, conf_threshold):
-    # Opening the video file specified by the video_path.
-    cap = cv2.VideoCapture(video_path)  # Change to 0 for webcam...
-    # Extracting video properties: width, height, and frames per second (fps).
-    w, h, fps = (int(cap.get(x)) for x in (cv2.CAP_PROP_FRAME_WIDTH,
-                 cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
-    # Creating a VideoWriter object for writing the processed frames to an output video file.
-    out = cv2.VideoWriter('output_video.mp4',
-                          cv2.VideoWriter_fourcc(*'MJPG'), fps, (w, h))
-
-
-
-
-
-
-    # Looping through each frame of the video until it is opened.
-    while (cap.isOpened()):
-        # Reading the next frame from the video.
-        ret, img = cap.read()
-        # If frame is successfully read.
-        if not ret:
-            break
-
-        # Making predictions on the frame using the model.
-        # 'model' object should be defined somewhere.
-        result = model.predict(img)
-        result = result[0] if isinstance(result, list) else result
-        # Converting predictions to a format compatible with supervision module.
-        detections = sv.Detections.from_ultralytics(result)
-        # Filtering out detections based on confidence threshold.
-        detections = detections[detections.confidence > conf_threshold]
-
-        # Counting the number of drones detected.
-        ndrones = len(detections[detections.class_id == 0])
-
-        # Extracting labels for detected objects.
-        labels = [
-            model.model.names[class_id]
-            for class_id
-            in detections.class_id
-        ]
-
-        # Annotating bounding boxes on the frame.
-        annotated_frame = bounding_box_annotator.annotate(
-            scene=img.copy(), detections=detections)
-        # Annotating labels on the frame.
-        annotated_frame = label_annotator.annotate(
-            scene=annotated_frame, detections=detections, labels=labels)
-
-        # Writing the annotated frame to the output video.
-        out.write(annotated_frame)
-        # Displaying the annotated frame.
-
-        # Sending data to the Bluetooth device.
-        tx_q.put(str(ndrones))
-        print("ndrones: ", ndrones)
-
-        yield annotated_frame, ndrones
-
-    # Releasing the output video writer.
-    out.release()
-
-    interface_video.close()
-    
+# Function to delete all files in the specified upload folder
+def delete_uploaded_images(upload_folder):
+    for filename in os.listdir(upload_folder):
+        file_path = os.path.join(upload_folder, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+                print(f"Deleted file: {file_path}")
+        except Exception as e:
+            print(f"Failed to delete {file_path}. Reason: {e}")
 
 
-# Defining inputs and outputs for the Gradio interface.
-inputs_video = [
-    gr.components.Video(label="Input video"),
-    gr.Slider(minimum=0, maximum=1, value=0.25, label="Confidence threshold")
-]
-outputs_video = [
-    gr.components.Image(type="numpy", label="Analysed video"),
-    gr.Textbox(label="Amount of drones"),
-]
-# Creating a Gradio interface with specified inputs, outputs, and other settings.
-interface_video = gr.Interface(
-    fn=show_preds_video,
-    inputs=inputs_video,
-    outputs=outputs_video,
-    title="Bee detector",
-    cache_examples=False,
-)
+@app.route('/', methods=['GET'])
+def index():
+    global open_camera_index
+    open_camera_index+=1
+    if camera_open_event.is_set():
+        flash('Camera Open!')
+    else:
+        open_camera_index = 0
+        flash('Opening Recognition Camera...')
+        # Start the face recognition thread, which will open the camera and recognition
+        threading.Thread(target=FullFaceRecognitionBLE.main, args=(take_picture_event, show_face_event, face_det_event, stop_event, camera_open_event)).start()
+    return render_template('recognition.html')
+
+@app.route('/check_camera_status', methods=['GET'])
+def check_camera_status():
+    if camera_open_event.is_set():
+        return jsonify({"camera_open": True})
+    else:
+        return jsonify({"camera_open": False})
+
+@app.route('/check_processing_status', methods=['GET'])
+def check_processing_status():
+    if images_processed_event.is_set():
+        return jsonify({"img_processed": True})
+    else:
+        return jsonify({"img_processed": False})
+
+@app.route('/upload', methods=['GET', 'POST'])
+def upload():
+    global picture_index, take_picture_event, user_name, user_password
+    if images_processed_event.is_set():
+        flash('Upload Succesful!')
+        images_processed_event.clear()
+        return render_template('upload.html')
+    if request.method == 'POST':
+        user_name = request.form['user_name']
+        user_password = request.form['password']
+
+        if not user_name or not user_password:
+            flash('User name and password are required.')
+            return redirect(request.url)
+        try:
+            show_face_event.set()
+            return redirect(url_for('camera'))
+        except Exception as e:
+            flash(f'Error: {e}')
+
+        return redirect(url_for('upload'))
+
+    return render_template('upload.html')
+
+@app.route('/camera', methods=['GET', 'POST'])
+def camera():
+    global picture_index, take_picture_event, user_name, user_password
+    if request.method == 'POST':
+        if face_det_event.is_set():
+            picture_index += 1
+            take_picture_event.set()
+            if picture_index == 5:
+                time.sleep(.5)  # to makes sure all images are in /captures
+                take_picture_event.clear()
+                try:
+                    show_face_event.clear()
+                    # Start image processing in a new thread, this will preprocess images and upload the user
+                    threading.Thread(target=ImagePreprocessing.main, args=(user_name, user_password, images_processed_event)).start()
+                    flash('Processing Upload...')
+                    picture_index = 0
+                    return redirect(url_for('upload'))
+                except Exception as ex:
+                    delete_uploaded_images('./captures')
+                    flash(f'error: {ex}')
+                    return redirect(url_for('upload'))
+            else:
+                flash(f'Photo taken {picture_index}')
+        else:
+            flash('No Face Detected In Frame, Please Try Again')
+        return redirect(url_for('camera'))
+
+    return render_template('camera.html')
 
 
-# Launching the Gradio interface.
-if __name__ == '__main__':
-    print("launching BLE thread")
-    init_ble_thread()
-    time.sleep(1) # little breathing room for BLE to start
-    print("launching GradIO interface")
-    interface_video.launch()
-    
+@app.route('/delete', methods=['GET', 'POST'])
+def delete_user():
+    if request.method == 'POST':
+        user_name = request.form['user_name']
+        user_password = request.form['password']
+        if not user_name:
+            flash('User name is required.')
+            return redirect(request.url)
+
+        try:
+            DeleteUser.main(user_name, user_password)
+            flash('Delete Successful!')
+        except Exception as e:
+            flash(f'Error: {e}')
+
+        return redirect(url_for('delete_user'))
+
+    return render_template('delete.html')
+
+
+if __name__ == "__main__":
+    app.run(debug=False, port=1234)

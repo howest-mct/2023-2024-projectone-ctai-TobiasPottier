@@ -46,9 +46,6 @@ X = np.vstack(df['embedding'].values)
 y = df['label'].values
 
 
-# Encode labels
-label_encoder = LabelEncoder()
-y_encoded = label_encoder.fit_transform(y)
 
 def custom_train_val_split(y, val_size=0.1):
     train_indices = []
@@ -61,10 +58,10 @@ def custom_train_val_split(y, val_size=0.1):
         val_indices.extend(label_indices[split_point:])
     return np.array(train_indices), np.array(val_indices)
 
-train_indices, val_indices = custom_train_val_split(y=y_encoded, val_size=0.1)
+train_indices, val_indices = custom_train_val_split(y=y, val_size=0.1)
 
 X_train, X_val = X[train_indices], X[val_indices]
-y_train, y_val = y_encoded[train_indices], y_encoded[val_indices]
+y_train, y_val = y[train_indices], y[val_indices]
 
 print('Training SVM model...')
 # Train a classifier SVM
@@ -85,9 +82,6 @@ grid_search = GridSearchCV(estimator = model,
                            verbose = 1)
 grid_search = grid_search.fit(X_train, y_train)
 
-best_accuracy = grid_search.best_score_ 
-best_parameters = grid_search.best_params_  
-
 print('Best accuracy : ', grid_search.best_score_)
 print('Best parameters :', grid_search.best_params_)
 
@@ -106,10 +100,8 @@ print(cf)
 accuracy = accuracy_score(y_val, y_pred) * 100
 print(f"Validation Accuracy: {accuracy:.2f}%")
 
-# Save the classifier and label encoder
-with open('facenet_classifier.pkl', 'wb') as f:
+# Save the classifier
+with open('SVM_classifier.pkl', 'wb') as f:
     pickle.dump(SVMmodel, f)
-with open('label_encoder.pkl', 'wb') as f:
-    pickle.dump(label_encoder, f)
 
-print("Model and label encoder saved.")
+print("Classifier Model Saved.")

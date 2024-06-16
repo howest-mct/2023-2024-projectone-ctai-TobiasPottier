@@ -11,7 +11,10 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 import mysql.connector
 
 print('Embedding Pictures...')
-
+userInput = input('Are u sure u want to TRUNCATE the entire database and enter new data?: ')
+if userInput.upper() == 'n':
+    exit()
+    
 # Load the CSV file
 df = pd.read_csv('C:/1-PC_M/1AI/ProjectOne/2ProjectOneGithub/DatasetRecognition/SubLabels/labels.csv')
 
