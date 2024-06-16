@@ -1,19 +1,20 @@
 from smbus import SMBus
 import time
 
-
 class LCD:
     I2C_ADDR = 0x27  # I2C device address
     LCD_CHR = 1       # Character mode
     LCD_CMD = 0       # Command mode
     LCD_LINE_1 = 0x80 # Instruction to go to beginning of line 1
     LCD_LINE_2 = 0xC0 # Instruction to go to beginning of line 2
-    LCD_BACKLIGHT = 0x08  # Data bit value to turn backlight on
+    LCD_BACKLIGHT_ON = 0x08  # Data bit value to turn backlight on
+    LCD_BACKLIGHT_OFF = 0x00 # Data bit value to turn backlight off
     ENABLE = 0b00000100    # Enable bit value
     E_DELAY = 0.0005       # Delay between pulses
 
     def __init__(self):
         self.bus = SMBus(1)
+        self.backlight = self.LCD_BACKLIGHT_ON
         self.lcd_init()
 
     def lcd_init(self):
@@ -26,8 +27,8 @@ class LCD:
         time.sleep(0.05)
 
     def send_byte(self, byte, mode):
-        bits_high = mode | (byte & 0xF0) | self.LCD_BACKLIGHT
-        bits_low = mode | ((byte & 0x0F) << 4) | self.LCD_BACKLIGHT
+        bits_high = mode | (byte & 0xF0) | self.backlight
+        bits_low = mode | ((byte & 0x0F) << 4) | self.backlight
         self.bus.write_byte(self.I2C_ADDR, bits_high)
         self.send_byte_with_e_toggle(bits_high)
         self.bus.write_byte(self.I2C_ADDR, bits_low)
@@ -65,3 +66,13 @@ class LCD:
 
     def cursor_off(self):
         self.send_instruction(0x0C)
+
+    def backlight_on(self):
+        self.backlight = self.LCD_BACKLIGHT_ON
+        self.send_byte(0x00, self.LCD_CMD)  # Dummy write to apply backlight change
+
+    def backlight_off(self):
+        self.backlight = self.LCD_BACKLIGHT_OFF
+        self.send_byte(0x00, self.LCD_CMD)  # Dummy write to apply backlight change
+
+

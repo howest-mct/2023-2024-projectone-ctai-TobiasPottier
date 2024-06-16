@@ -1,0 +1,17 @@
+[Unit]
+Description=ProjectOne Project
+After=network.target
+
+[Service]
+ExecStart=/home/user/ProjectOne/2023-2024-projectone-ctai-TobiasPottier/.venv/bin/python -u /home/user/ProjectOne/2023-2024-projectone-ctai-TobiasPottier/RPi/app_ble_masterMind.py
+WorkingDirectory=/home/user/ProjectOne/2023-2024-projectone-ctai-TobiasPottier/RPi
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=user
+
+CPUSchedulingPolicy=rr
+CPUSchedulingPriority=99
+
+[Install]
+WantedBy=multi-user.target
